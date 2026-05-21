@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(composer --version)",
+      "PowerShell(php --version)",
+      "Bash(composer create-project *)",
+      "PowerShell(Set-Location \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $env:XDEBUG_MODE=\"off\"; composer create-project laravel/laravel . --prefer-dist 2>&1 | Select-Object -Last 40)",
+      "PowerShell($env:XDEBUG_MODE=\"off\"; composer create-project laravel/laravel \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-temp\" --prefer-dist 2>&1 | Select-Object -Last 50)",
+      "PowerShell($dest = \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $src = \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-temp\"; Get-ChildItem $src -Force | ForEach-Object { Move-Item $_.FullName $dest -Force }; Write-Host \"Done\")",
+      "PowerShell(Set-Location \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $env:XDEBUG_MODE=\"off\"; composer require laravel/sanctum --no-interaction 2>&1 | Select-Object -Last 15)",
+      "PowerShell(Set-Location \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $env:XDEBUG_MODE=\"off\"; php artisan route:list --path=api 2>&1)",
+      "PowerShell(Set-Location \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $env:XDEBUG_MODE=\"off\"; php artisan tinker --no-interaction --execute=\"echo app\\(\\\\App\\\\Services\\\\Contracts\\\\BillingServiceInterface::class\\)::class . PHP_EOL; echo app\\(\\\\App\\\\Services\\\\Contracts\\\\ViolationServiceInterface::class\\)::class . PHP_EOL; echo app\\(\\\\App\\\\Repositories\\\\Contracts\\\\InvoiceRepositoryInterface::class\\)::class . PHP_EOL;\" 2>&1)",
+      "PowerShell(Set-Location \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $env:XDEBUG_MODE=\"off\"; php artisan migrate:fresh --force 2>&1)",
+      "PowerShell(Set-Location \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $env:XDEBUG_MODE=\"off\"; php artisan db:seed --force 2>&1)",
+      "PowerShell(Set-Location \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $env:XDEBUG_MODE=\"off\"; php artisan migrate:fresh --seed --force 2>&1)",
+      "PowerShell(New-Item -ItemType Directory -Path \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\\\\docs\" -Force)",
+      "Bash(Get-ChildItem -Path \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(php artisan *)",
+      "Bash(php -l app/Services/BillingService.php app/Services/ViolationService.php app/Services/PropertyService.php app/Services/Contracts/BillingServiceInterface.php app/Services/Contracts/ViolationServiceInterface.php app/Repositories/Contracts/ViolationRepositoryInterface.php app/Repositories/Eloquent/ViolationRepository.php app/Providers/RepositoryServiceProvider.php app/Providers/AppServiceProvider.php app/Policies/InvoicePolicy.php app/Policies/PropertyPolicy.php app/Policies/ViolationPolicy.php app/Http/Controllers/Api/PropertyController.php app/Http/Controllers/Api/UserController.php app/Http/Controllers/Api/InvoiceController.php app/Console/Commands/ApplyLateFeesCommand.php app/Console/Commands/GenerateMonthlyDuesCommand.php app/Notifications/ViolationIssuedNotification.php app/Listeners/HandleViolationStatusUpdate.php app/Exceptions/InvoiceNotCancellableException.php routes/api.php)",
+      "Bash(php -l app/Http/Requests/Api/CancelInvoiceRequest.php app/Http/Requests/Api/GenerateBulkDuesRequest.php app/Http/Requests/Api/StorePropertyRequest.php app/Http/Requests/Api/UpdatePropertyRequest.php app/Http/Requests/Api/AssignResidentRequest.php app/Http/Requests/Api/StoreUserRequest.php app/Http/Requests/Api/UpdateUserRequest.php)",
+      "Bash(php -l app/Services/UserService.php app/Services/PropertyService.php app/Services/Contracts/UserServiceInterface.php app/Services/Contracts/PropertyServiceInterface.php app/Repositories/Contracts/UserRepositoryInterface.php app/Repositories/Contracts/PropertyRepositoryInterface.php app/Repositories/Eloquent/UserRepository.php app/Repositories/Eloquent/PropertyRepository.php)",
+      "Bash(cd /d d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend)",
+      "Bash(php -l app/Http/Resources/UserResource.php app/Http/Resources/PropertyResource.php app/Http/Controllers/Api/UserController.php app/Http/Controllers/Api/PropertyController.php app/Http/Controllers/Api/InvoiceController.php app/Http/Controllers/Api/ViolationController.php app/Http/Controllers/Controller.php app/Http/Requests/Api/UpdateUserRequest.php app/Http/Requests/Api/UpdatePropertyRequest.php app/Http/Requests/Api/AssignResidentRequest.php app/Http/Requests/Api/CreateInvoiceRequest.php app/Http/Requests/Api/CreateViolationRequest.php)"
+    ]
+  }
+}
