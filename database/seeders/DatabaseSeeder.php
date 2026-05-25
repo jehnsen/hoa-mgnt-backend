@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
  * Springdale Village HOA – Master Seeder
  *
  * Execution order is intentional: foreign-key constraints require parents
- * before children (users → properties → pivot → invoices → payments → violations).
+ * before children. New feature seeders run after core data is established.
  *
  * Run with:
  *   php artisan migrate:fresh && php artisan db:seed
@@ -27,12 +27,25 @@ class DatabaseSeeder extends Seeder
         $this->command->info('');
 
         $this->call([
+            // ── Core (must run first — others depend on users & properties) ───
             UserSeeder::class,
             PropertySeeder::class,
             PropertyUserSeeder::class,
+
+            // ── Financial ────────────────────────────────────────────────────
             InvoiceSeeder::class,
             PaymentSeeder::class,
+
+            // ── Violations ───────────────────────────────────────────────────
             ViolationSeeder::class,
+
+            // ── New features ─────────────────────────────────────────────────
+            AnnouncementSeeder::class,
+            MaintenanceRequestSeeder::class,
+            AmenitySeeder::class,          // must run before AmenityBookingSeeder
+            AmenityBookingSeeder::class,
+            DocumentSeeder::class,
+            MeetingSeeder::class,          // includes votes and responses inline
         ]);
 
         $this->command->info('');

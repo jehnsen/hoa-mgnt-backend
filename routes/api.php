@@ -2,11 +2,20 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\AmenityBookingController;
+use App\Http\Controllers\Api\AmenityController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\MaintenanceRequestController;
+use App\Http\Controllers\Api\MeetingController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PropertyController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ViolationController;
+use App\Http\Controllers\Api\VoteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -86,6 +95,78 @@ Route::prefix('v1')->group(function (): void {
                  ->name('violations.status.update');
             Route::post('{uuid}/evidence',        [ViolationController::class, 'appendEvidence'])
                  ->name('violations.evidence.append');
+        });
+
+        // ── Announcements ─────────────────────────────────────────────────────
+        Route::prefix('announcements')->group(function (): void {
+            Route::get('/',            [AnnouncementController::class, 'index'])->name('announcements.index');
+            Route::post('/',           [AnnouncementController::class, 'store'])->name('announcements.store');
+            Route::get('{uuid}',       [AnnouncementController::class, 'show'])->name('announcements.show');
+            Route::patch('{uuid}',     [AnnouncementController::class, 'update'])->name('announcements.update');
+            Route::delete('{uuid}',    [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+        });
+
+        // ── Maintenance Requests ──────────────────────────────────────────────
+        Route::prefix('maintenance')->group(function (): void {
+            Route::get('/',                    [MaintenanceRequestController::class, 'index'])->name('maintenance.index');
+            Route::post('/',                   [MaintenanceRequestController::class, 'store'])->name('maintenance.store');
+            Route::get('{uuid}',               [MaintenanceRequestController::class, 'show'])->name('maintenance.show');
+            Route::patch('{uuid}/status',      [MaintenanceRequestController::class, 'updateStatus'])
+                 ->name('maintenance.status.update');
+        });
+
+        // ── Amenities & Bookings ──────────────────────────────────────────────
+        Route::prefix('amenities')->group(function (): void {
+            Route::get('/',            [AmenityController::class, 'index'])->name('amenities.index');
+            Route::post('/',           [AmenityController::class, 'store'])->name('amenities.store');
+            Route::get('{uuid}',       [AmenityController::class, 'show'])->name('amenities.show');
+            Route::patch('{uuid}',     [AmenityController::class, 'update'])->name('amenities.update');
+        });
+
+        Route::prefix('bookings')->group(function (): void {
+            Route::get('/',                    [AmenityBookingController::class, 'index'])->name('bookings.index');
+            Route::post('/',                   [AmenityBookingController::class, 'store'])->name('bookings.store');
+            Route::get('{uuid}',               [AmenityBookingController::class, 'show'])->name('bookings.show');
+            Route::patch('{uuid}/status',      [AmenityBookingController::class, 'updateStatus'])
+                 ->name('bookings.status.update');
+        });
+
+        // ── Documents ─────────────────────────────────────────────────────────
+        Route::prefix('documents')->group(function (): void {
+            Route::get('/',            [DocumentController::class, 'index'])->name('documents.index');
+            Route::post('/',           [DocumentController::class, 'store'])->name('documents.store');
+            Route::get('{uuid}',       [DocumentController::class, 'show'])->name('documents.show');
+            Route::patch('{uuid}',     [DocumentController::class, 'update'])->name('documents.update');
+            Route::delete('{uuid}',    [DocumentController::class, 'destroy'])->name('documents.destroy');
+        });
+
+        // ── Meetings & Voting ─────────────────────────────────────────────────
+        Route::prefix('meetings')->group(function (): void {
+            Route::get('/',                        [MeetingController::class, 'index'])->name('meetings.index');
+            Route::post('/',                       [MeetingController::class, 'store'])->name('meetings.store');
+            Route::get('{uuid}',                   [MeetingController::class, 'show'])->name('meetings.show');
+            Route::patch('{uuid}',                 [MeetingController::class, 'update'])->name('meetings.update');
+            Route::post('{uuid}/votes',            [MeetingController::class, 'storeVote'])->name('meetings.votes.store');
+        });
+
+        Route::prefix('votes')->group(function (): void {
+            Route::post('{uuid}/cast',   [VoteController::class, 'cast'])->name('votes.cast');
+            Route::post('{uuid}/close',  [VoteController::class, 'close'])->name('votes.close');
+            Route::get('{uuid}/tally',   [VoteController::class, 'tally'])->name('votes.tally');
+        });
+
+        // ── Reports & Summaries ───────────────────────────────────────────────
+        Route::prefix('reports')->group(function (): void {
+            Route::get('financial',    [ReportController::class, 'financial'])->name('reports.financial');
+            Route::get('violations',   [ReportController::class, 'violations'])->name('reports.violations');
+            Route::get('occupancy',    [ReportController::class, 'occupancy'])->name('reports.occupancy');
+            Route::get('maintenance',  [ReportController::class, 'maintenance'])->name('reports.maintenance');
+        });
+
+        // ── Resident Self-Service (Profile) ───────────────────────────────────
+        Route::prefix('profile')->group(function (): void {
+            Route::get('/',    [ProfileController::class, 'show'])->name('profile.show');
+            Route::patch('/',  [ProfileController::class, 'update'])->name('profile.update');
         });
     });
 });

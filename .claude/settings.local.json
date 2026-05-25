@@ -21,7 +21,15 @@
       "Bash(php -l app/Http/Requests/Api/CancelInvoiceRequest.php app/Http/Requests/Api/GenerateBulkDuesRequest.php app/Http/Requests/Api/StorePropertyRequest.php app/Http/Requests/Api/UpdatePropertyRequest.php app/Http/Requests/Api/AssignResidentRequest.php app/Http/Requests/Api/StoreUserRequest.php app/Http/Requests/Api/UpdateUserRequest.php)",
       "Bash(php -l app/Services/UserService.php app/Services/PropertyService.php app/Services/Contracts/UserServiceInterface.php app/Services/Contracts/PropertyServiceInterface.php app/Repositories/Contracts/UserRepositoryInterface.php app/Repositories/Contracts/PropertyRepositoryInterface.php app/Repositories/Eloquent/UserRepository.php app/Repositories/Eloquent/PropertyRepository.php)",
       "Bash(cd /d d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend)",
-      "Bash(php -l app/Http/Resources/UserResource.php app/Http/Resources/PropertyResource.php app/Http/Controllers/Api/UserController.php app/Http/Controllers/Api/PropertyController.php app/Http/Controllers/Api/InvoiceController.php app/Http/Controllers/Api/ViolationController.php app/Http/Controllers/Controller.php app/Http/Requests/Api/UpdateUserRequest.php app/Http/Requests/Api/UpdatePropertyRequest.php app/Http/Requests/Api/AssignResidentRequest.php app/Http/Requests/Api/CreateInvoiceRequest.php app/Http/Requests/Api/CreateViolationRequest.php)"
+      "Bash(php -l app/Http/Resources/UserResource.php app/Http/Resources/PropertyResource.php app/Http/Controllers/Api/UserController.php app/Http/Controllers/Api/PropertyController.php app/Http/Controllers/Api/InvoiceController.php app/Http/Controllers/Api/ViolationController.php app/Http/Controllers/Controller.php app/Http/Requests/Api/UpdateUserRequest.php app/Http/Requests/Api/UpdatePropertyRequest.php app/Http/Requests/Api/AssignResidentRequest.php app/Http/Requests/Api/CreateInvoiceRequest.php app/Http/Requests/Api/CreateViolationRequest.php)",
+      "Bash(Get-ChildItem -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell(head -100)",
+      "Bash(Get-ChildItem -Path \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\" -Recurse -Depth 3)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(Select-String -Pattern \"\\(announcements|maintenance|amenities|bookings|documents|meetings|votes|reports|profile\\)\")",
+      "Bash(php -r ' *)"
     ]
   }
 }
