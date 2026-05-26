@@ -17,6 +17,8 @@ class InvoiceResource extends JsonResource
         return [
             'id'              => $this->uuid,
             'property'        => new PropertyResource($this->whenLoaded('property')),
+            'type'            => $this->type?->value,
+            'type_label'      => $this->type?->label(),
             'description'     => $this->description,
             'base_amount'     => $this->base_amount,
             'late_fee_amount' => $this->late_fee_amount,

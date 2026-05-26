@@ -9,6 +9,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -51,8 +52,18 @@ class User extends Authenticatable
     public function properties(): BelongsToMany
     {
         return $this->belongsToMany(Property::class, 'property_user')
-                    ->withPivot(['move_in_at', 'move_out_at', 'is_primary_resident'])
+                    ->withPivot(['move_in_at', 'move_out_at', 'is_primary_resident', 'is_owner'])
                     ->withTimestamps();
+    }
+
+    public function vendorProfile(): HasOne
+    {
+        return $this->hasOne(VendorProfile::class);
+    }
+
+    public function emergencyContacts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EmergencyContact::class);
     }
 
     // ─── Domain Helpers ───────────────────────────────────────────────────────
@@ -70,6 +81,11 @@ class User extends Authenticatable
     public function isResident(): bool
     {
         return $this->role === UserRole::Resident;
+    }
+
+    public function isVendor(): bool
+    {
+        return $this->role === UserRole::Vendor;
     }
 
     public function canManageFinancials(): bool

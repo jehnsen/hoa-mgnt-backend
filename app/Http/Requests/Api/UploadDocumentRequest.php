@@ -22,10 +22,7 @@ class UploadDocumentRequest extends FormRequest
             'title'        => ['required', 'string', 'min:3', 'max:200'],
             'description'  => ['nullable', 'string', 'max:2000'],
             'category'     => ['required', Rule::enum(DocumentCategory::class)],
-            'file_path'    => ['required', 'string', 'max:500'],
-            'file_name'    => ['required', 'string', 'max:255'],
-            'file_size'    => ['required', 'integer', 'min:1'],
-            'mime_type'    => ['required', 'string', 'max:100'],
+            'file'         => ['required', 'file', 'max:20480', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,png,jpg,jpeg'],
             'is_public'    => ['sometimes', 'boolean'],
             'published_at' => ['nullable', 'date'],
         ];

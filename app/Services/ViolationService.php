@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\InvoiceType;
+use App\Enums\ViolationCategory;
 use App\Enums\ViolationStatus;
 use App\Events\ViolationStatusUpdated;
 use App\Exceptions\InvalidViolationTransitionException;
 use App\Models\User;
 use App\Models\Violation;
 use App\Repositories\Contracts\ViolationRepositoryInterface;
+use App\Services\AuditLogger;
+use App\Services\Contracts\BillingServiceInterface;
 use App\Services\Contracts\ViolationServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -19,11 +25,18 @@ final class ViolationService implements ViolationServiceInterface
 {
     public function __construct(
         private readonly ViolationRepositoryInterface $violationRepository,
+        private readonly BillingServiceInterface      $billingService,
+        private readonly AuditLogger                  $auditLogger,
     ) {}
 
-    public function list(?ViolationStatus $status = null, ?int $propertyId = null, int $perPage = 20): LengthAwarePaginator
+    public function list(?ViolationStatus $status = null, ?int $propertyId = null, ?ViolationCategory $category = null, int $perPage = 20): LengthAwarePaginator
     {
-        return $this->violationRepository->paginateFiltered($status, $propertyId, $perPage);
+        return $this->violationRepository->paginateFiltered($status, $propertyId, $category, $perPage);
+    }
+
+    public function repeatOffenders(int $minCount = 3, int $months = 6, ?ViolationCategory $category = null): Collection
+    {
+        return $this->violationRepository->repeatOffenders($minCount, Carbon::now()->subMonths($months), $category);
     }
 
     public function findOrFail(string $uuid): Violation
@@ -48,12 +61,13 @@ final class ViolationService implements ViolationServiceInterface
     {
         return DB::transaction(function () use ($data, $reporter, $evidenceImages): Violation {
             return $this->violationRepository->create([
-                'property_id'    => $data['property_id'],
-                'reported_by'    => $reporter->id,
-                'title'          => $data['title'],
-                'description'    => $data['description'],
-                'status'         => ViolationStatus::Draft,
-                'fine_amount'    => $data['fine_amount'] ?? 0.00,
+                'property_id'     => $data['property_id'],
+                'reported_by'     => $reporter->id,
+                'title'           => $data['title'],
+                'description'     => $data['description'],
+                'category'        => $data['category'] ?? null,
+                'status'          => ViolationStatus::Draft,
+                'fine_amount'     => $data['fine_amount'] ?? 0.00,
                 'evidence_images' => empty($evidenceImages) ? null : $evidenceImages,
             ]);
         });
@@ -74,11 +88,40 @@ final class ViolationService implements ViolationServiceInterface
         }
 
         $updated = DB::transaction(function () use ($violation, $newStatus): Violation {
-            return $this->violationRepository->updateStatus($violation, $newStatus);
+            $updated = $this->violationRepository->updateStatus($violation, $newStatus);
+
+            // Auto-generate a ViolationFine invoice when a fine is issued for the first time
+            if ($newStatus === ViolationStatus::Issued
+                && $updated->invoice_id === null
+                && (float) $violation->fine_amount > 0.0
+            ) {
+                $invoice = $this->billingService->generateCustomInvoice(
+                    $violation->property,
+                    InvoiceType::ViolationFine,
+                    [
+                        'base_amount' => $violation->fine_amount,
+                        'description' => "Violation Fine – {$violation->title}",
+                        'due_at'      => Carbon::now()->addDays(30)->toDateString(),
+                    ]
+                );
+
+                $this->violationRepository->update($updated, ['invoice_id' => $invoice->id]);
+                $updated->invoice_id = $invoice->id;
+            }
+
+            return $updated;
         });
 
         // Fire event outside the transaction so listeners run after the commit
         ViolationStatusUpdated::dispatch($updated, $previousStatus, $newStatus);
+
+        $this->auditLogger->log(
+            'violation',
+            $updated->uuid,
+            'status_updated',
+            ['status' => $previousStatus->value],
+            ['status' => $newStatus->value],
+        );
 
         return $updated;
     }

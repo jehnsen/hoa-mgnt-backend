@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ViolationCategory;
 use App\Enums\ViolationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\AppendEvidenceRequest;
@@ -33,8 +34,25 @@ final class ViolationController extends Controller
             $this->violationService->list(
                 status:     request()->enum('status', ViolationStatus::class),
                 propertyId: request()->integer('property_id') ?: null,
+                category:   request()->enum('category', ViolationCategory::class),
             )
         );
+    }
+
+    public function repeatOffenders(): JsonResponse
+    {
+        $properties = $this->violationService->repeatOffenders(
+            minCount: max(1, request()->integer('min_count', 3)),
+            months:   max(1, request()->integer('months', 6)),
+            category: request()->enum('category', ViolationCategory::class),
+        );
+
+        return $this->successResponse($properties->map(fn ($p) => [
+            'property_id'     => $p->uuid,
+            'unit_number'     => $p->unit_number,
+            'address'         => $p->address,
+            'violation_count' => $p->violation_count,
+        ])->values());
     }
 
     public function show(string $uuid): JsonResponse
@@ -52,7 +70,7 @@ final class ViolationController extends Controller
         $violation = $this->violationService->create(
             data: array_merge(
                 $request->safe()->except('evidence_images', 'property_id'),
-                ['property_id' => $property->id]
+                ['property_id' => $property->id, 'category' => $request->input('category')]
             ),
             reporter:       $request->user(),
             evidenceImages: $request->input('evidence_images', []),

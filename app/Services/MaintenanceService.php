@@ -8,6 +8,7 @@ use App\Enums\MaintenanceStatus;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
 use App\Repositories\Contracts\MaintenanceRequestRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\MaintenanceServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -17,6 +18,7 @@ final class MaintenanceService implements MaintenanceServiceInterface
 {
     public function __construct(
         private readonly MaintenanceRequestRepositoryInterface $maintenanceRepository,
+        private readonly AuditLogger                          $auditLogger,
     ) {}
 
     public function list(?int $propertyId, ?MaintenanceStatus $status, ?User $requester, int $perPage = 20): LengthAwarePaginator
@@ -52,7 +54,8 @@ final class MaintenanceService implements MaintenanceServiceInterface
 
     public function updateStatus(string $uuid, MaintenanceStatus $newStatus, ?string $resolutionNotes = null, ?int $assignedTo = null): MaintenanceRequest
     {
-        $request = $this->findOrFail($uuid);
+        $request        = $this->findOrFail($uuid);
+        $previousStatus = $request->status;
 
         if (! $request->canTransitionTo($newStatus)) {
             throw new HttpException(422, "Cannot transition from [{$request->status->value}] to [{$newStatus->value}].");
@@ -72,6 +75,16 @@ final class MaintenanceService implements MaintenanceServiceInterface
             $updates['resolved_at'] = now();
         }
 
-        return $this->maintenanceRepository->update($request, $updates);
+        $updated = $this->maintenanceRepository->update($request, $updates);
+
+        $this->auditLogger->log(
+            'maintenance_request',
+            $updated->uuid,
+            'status_updated',
+            ['status' => $previousStatus->value],
+            ['status' => $newStatus->value],
+        );
+
+        return $updated;
     }
 }

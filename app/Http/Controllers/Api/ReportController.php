@@ -15,6 +15,16 @@ final class ReportController extends Controller
         private readonly ReportingServiceInterface $reportingService,
     ) {}
 
+    public function dashboard(): JsonResponse
+    {
+        $this->ensureBoardOrAdmin();
+
+        return $this->successResponse(
+            $this->reportingService->dashboardSummary(),
+            'Dashboard summary'
+        );
+    }
+
     public function financial(): JsonResponse
     {
         $this->ensureBoardOrAdmin();

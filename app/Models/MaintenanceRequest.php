@@ -21,6 +21,7 @@ class MaintenanceRequest extends Model
         'property_id',
         'submitted_by',
         'assigned_to',
+        'vendor_id',
         'category',
         'title',
         'description',
@@ -58,6 +59,11 @@ class MaintenanceRequest extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'vendor_id');
     }
 
     public function canTransitionTo(MaintenanceStatus $next): bool

@@ -45,7 +45,15 @@ class Property extends Model
     public function residents(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'property_user')
-                    ->withPivot(['move_in_at', 'move_out_at', 'is_primary_resident'])
+                    ->withPivot(['move_in_at', 'move_out_at', 'is_primary_resident', 'is_owner'])
+                    ->withTimestamps();
+    }
+
+    public function owners(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'property_user')
+                    ->withPivot(['move_in_at', 'move_out_at', 'is_primary_resident', 'is_owner'])
+                    ->wherePivot('is_owner', true)
                     ->withTimestamps();
     }
 
@@ -57,6 +65,21 @@ class Property extends Model
     public function violations(): HasMany
     {
         return $this->hasMany(Violation::class);
+    }
+
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(Vehicle::class);
+    }
+
+    public function pets(): HasMany
+    {
+        return $this->hasMany(Pet::class);
+    }
+
+    public function clearances(): HasMany
+    {
+        return $this->hasMany(Clearance::class);
     }
 
     // ─── Scopes ───────────────────────────────────────────────────────────────

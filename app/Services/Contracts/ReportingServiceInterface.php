@@ -17,4 +17,7 @@ interface ReportingServiceInterface
 
     /** @return array<string, mixed> */
     public function maintenanceSummary(): array;
+
+    /** @return array<string, mixed> */
+    public function dashboardSummary(): array;
 }

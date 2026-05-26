@@ -4,15 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services\Contracts;
 
+use App\Enums\ViolationCategory;
 use App\Enums\ViolationStatus;
 use App\Models\User;
 use App\Models\Violation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 interface ViolationServiceInterface
 {
     /** @return LengthAwarePaginator<Violation> */
-    public function list(?ViolationStatus $status = null, ?int $propertyId = null, int $perPage = 20): LengthAwarePaginator;
+    public function list(?ViolationStatus $status = null, ?int $propertyId = null, ?ViolationCategory $category = null, int $perPage = 20): LengthAwarePaginator;
+
+    /**
+     * Properties with >= $minCount non-draft violations in the last $months months.
+     * Each property has a `violation_count` attribute appended.
+     *
+     * @return Collection<int, \App\Models\Property>
+     */
+    public function repeatOffenders(int $minCount = 3, int $months = 6, ?ViolationCategory $category = null): Collection;
 
     public function findOrFail(string $uuid): Violation;
 

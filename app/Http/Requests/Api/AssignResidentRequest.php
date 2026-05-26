@@ -21,6 +21,7 @@ class AssignResidentRequest extends FormRequest
             'move_in_at'           => ['required', 'date'],
             'move_out_at'          => ['nullable', 'date', 'after:move_in_at'],
             'is_primary_resident'  => ['sometimes', 'boolean'],
+            'is_owner'             => ['sometimes', 'boolean'],
         ];
     }
 }

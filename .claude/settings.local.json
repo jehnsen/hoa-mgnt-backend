@@ -29,7 +29,9 @@
       "Bash(Select-Object FullName, PSIsContainer)",
       "Bash(Format-Table -AutoSize)",
       "Bash(Select-String -Pattern \"\\(announcements|maintenance|amenities|bookings|documents|meetings|votes|reports|profile\\)\")",
-      "Bash(php -r ' *)"
+      "Bash(php -r ' *)",
+      "Bash(python -c \"import sys,json; routes=json.load\\(sys.stdin\\); print\\(f'Total routes: {len\\(routes\\)}'\\)\")",
+      "PowerShell(cd \"d:\\\\xampp\\\\apache\\\\bin\\\\hoa-backend\"; $json = Get-Content \"docs\\\\HOA-Management-API.postman_collection.json\" -Raw; $obj = $json | ConvertFrom-Json; Write-Host \"Collection name: $\\($obj.info.name\\)\"; Write-Host \"Schema: $\\($obj.info.schema\\)\"; $folders = $obj.item | Where-Object { $_.item }; Write-Host \"Folders: $\\($folders.Count\\)\"; $allItems = $obj.item | ForEach-Object { if \\($_.item\\) { $_.item } else { $_ } }; Write-Host \"Total requests: $\\($allItems.Count\\)\")"
     ]
   }
 }

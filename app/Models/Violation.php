@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ViolationCategory;
 use App\Enums\ViolationStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Violation extends Model
@@ -20,8 +22,10 @@ class Violation extends Model
         'reported_by',
         'title',
         'description',
+        'category',
         'status',
         'fine_amount',
+        'invoice_id',
         'evidence_images',
         'issued_at',
         'resolved_at',
@@ -31,8 +35,8 @@ class Violation extends Model
     {
         return [
             'status'          => ViolationStatus::class,
+            'category'        => ViolationCategory::class,
             'fine_amount'     => 'decimal:2',
-            // JSON cast automatically encodes/decodes the geotagged images array
             'evidence_images' => 'array',
             'issued_at'       => 'datetime',
             'resolved_at'     => 'datetime',
@@ -54,6 +58,16 @@ class Violation extends Model
     public function reporter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reported_by');
+    }
+
+    public function fineInvoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class, 'invoice_id');
+    }
+
+    public function appeals(): HasMany
+    {
+        return $this->hasMany(ViolationAppeal::class);
     }
 
     // ─── Scopes ───────────────────────────────────────────────────────────────

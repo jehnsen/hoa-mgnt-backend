@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "hoa-mgmt-springdale-v3",
+    "_postman_id": "hoa-mgmt-springdale-v4",
     "name": "HOA Management System API — Springdale Village",
-    "description": "Complete REST API collection for the Springdale Village Homeowners Association Management System (Biñan City, Laguna).\n\n**Base URL:** `{{base_url}}/api/v1`\n\n**Authentication:** Laravel Sanctum — Bearer token. Run **Login** first; the token is auto-saved to `{{token}}` by the post-response script.\n\n**Default seeded credentials:**\n- SuperAdmin: `admin@springdale-hoa.ph`\n- Board President: `rodrigo.aquino@springdale-hoa.ph`\n- Treasurer: `lourdes.santos@springdale-hoa.ph`\n- Resident: `carlos.reyes@gmail.com`\n- Password (all): `Springdale@2026`\n\n**Roles & permissions:**\n- `super_admin` → full access (users, properties, financials, violations)\n- `board_member` → financials + violations; read-only on users/properties\n- `resident` → read-only on own property invoices and violations\n\n**Uniform response envelope:**\n```json\n{ \"success\": true,  \"message\": \"...\", \"data\": { } }\n{ \"success\": false, \"message\": \"...\", \"errors\": { } }\n```\n\n**Public identifiers:** All resources use **UUID** as the public-facing `id`. Route parameters (`:property`, `:user`, `:uuid`) and request-body FK fields (`property_id`, `user_uuid`) all accept UUIDs. The collection variables `{{property_id}}` and `{{user_id}}` hold UUID strings seeded from `migrate:fresh --seed`.\n\n**Stack:** Laravel 11 · MySQL 8 · Sanctum 4 · PHP 8.2+",
+    "description": "Complete REST API collection for the Springdale Village Homeowners Association Management System (Biñan City, Laguna).\n\n**Base URL:** `{{base_url}}/api/v1`\n\n**Authentication:** Laravel Sanctum — Bearer token. Run **Login** first; the token is auto-saved to `{{token}}` by the post-response script.\n\n**Default seeded credentials:**\n- SuperAdmin: `admin@springdale-hoa.ph`\n- Board President: `rodrigo.aquino@springdale-hoa.ph`\n- Treasurer: `lourdes.santos@springdale-hoa.ph`\n- Resident: `carlos.reyes@gmail.com`\n- Password (all): `Springdale@2026`\n\n**Roles & permissions:**\n- `super_admin` → full access to all modules\n- `board_member` → financials, violations, announcements, maintenance, amenities, documents, meetings, reports\n- `resident` → read own invoices/violations, submit maintenance, book amenities, view public docs/announcements, vote, update own profile\n- `vendor` → read-only on assigned maintenance requests\n\n**Modules:**\n1. 🔐 Authentication\n2. 👤 User Management\n3. 🏠 Property Management\n4. 💰 Financials — Invoices\n5. 🚨 Violations\n6. 📢 Announcements\n7. 🔧 Maintenance Requests\n8. 🏊 Amenities\n9. 📅 Amenity Bookings\n10. 📄 Documents\n11. 🗳️ Meetings & Voting\n12. 📊 Reports & Summaries\n13. 🙍 Resident Profile\n\n**Uniform response envelope:**\n```json\n{ \"success\": true,  \"message\": \"...\", \"data\": { } }\n{ \"success\": false, \"message\": \"...\", \"errors\": { } }\n```\n\n**Public identifiers:** All resources expose **UUID** as the public-facing `id`. Route parameters and request-body FK fields (`property_id`, `amenity_id`, etc.) all accept UUIDs.\n\n**Stack:** Laravel 13 · SQLite · Sanctum 4 · PHP 8.3+",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -21,13 +21,20 @@
     { "key": "invoice_pending",   "value": "019e4918-61ed-734b-b4e5-af153aa9345c",  "type": "string" },
     { "key": "violation_draft",   "value": "019e4918-743f-70ec-b7af-c96d6ffb87b5",  "type": "string" },
     { "key": "violation_issued",  "value": "019e4918-747b-721b-b19b-004c80ce482f",  "type": "string" },
-    { "key": "violation_resolved","value": "019e4918-74f2-706c-8a53-2ce62fc82ecf",  "type": "string" }
+    { "key": "violation_resolved","value": "019e4918-74f2-706c-8a53-2ce62fc82ecf",  "type": "string" },
+    { "key": "announcement_id",   "value": "",  "type": "string", "description": "UUID of any announcement. Populate by running List Announcements and copying an id." },
+    { "key": "maintenance_id",    "value": "",  "type": "string", "description": "UUID of any maintenance request. Populate by running List Maintenance Requests and copying an id." },
+    { "key": "amenity_id",        "value": "",  "type": "string", "description": "UUID of Swimming Pool or another amenity. Populate by running List Amenities." },
+    { "key": "booking_id",        "value": "",  "type": "string", "description": "UUID of any booking. Populate by running List Bookings." },
+    { "key": "document_id",       "value": "",  "type": "string", "description": "UUID of any document. Populate by running List Documents." },
+    { "key": "meeting_id",        "value": "",  "type": "string", "description": "UUID of any meeting. Populate by running List Meetings." },
+    { "key": "vote_id",           "value": "",  "type": "string", "description": "UUID of any vote. Populate by running Show Meeting (votes are nested in the response)." }
   ],
   "item": [
 
     {
       "name": "🔐 Authentication",
-      "description": "Sanctum token-based auth. **Login** auto-saves the token to `{{token}}` so all subsequent requests are pre-authorized. **Logout** clears it.",
+      "description": "Sanctum token-based auth. **Login** auto-saves the token to `{{token}}` so all subsequent requests are pre-authorized.",
       "item": [
         {
           "name": "Login",
@@ -92,20 +99,6 @@
         },
         {
           "name": "Get Authenticated User (Me)",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Returns authenticated user profile', () => {",
-                "    const json = pm.response.json();",
-                "    pm.expect(json.success).to.be.true;",
-                "    pm.expect(json.data).to.have.property('email');",
-                "    pm.expect(json.data).to.have.property('role');",
-                "});"
-              ]
-            }
-          }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
@@ -141,8 +134,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/v1/auth/logout", "host": ["{{base_url}}"], "path": ["api","v1","auth","logout"] },
-            "description": "Revokes the current personal access token. The post-response script clears `{{token}}`."
+            "url": { "raw": "{{base_url}}/api/v1/auth/logout", "host": ["{{base_url}}"], "path": ["api","v1","auth","logout"] }
           },
           "response": [
             {
@@ -162,156 +154,47 @@
 
     {
       "name": "👤 User Management",
-      "description": "CRUD operations for HOA user accounts.\n\n**Authorization:** `super_admin` only for create / update / delete. All authenticated users can list and view.\n\n**Roles:** `super_admin`, `board_member`, `resident`, `vendor`\n\n**Public identifier:** All user routes use the `uuid` column. The `{{user_id}}` variable holds a UUID string.",
+      "description": "CRUD operations for HOA user accounts.\n\n**Authorization:** `super_admin` only for create / update / delete.\n\n**Roles:** `super_admin`, `board_member`, `resident`, `vendor`",
       "item": [
         {
           "name": "List Users",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Returns paginated list', () => {",
-                "    pm.expect(pm.response.json()).to.have.property('data');",
-                "    pm.expect(pm.response.json()).to.have.property('meta');",
-                "});"
-              ]
-            }
-          }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/users?page=1",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users"],
-              "query": [{ "key": "page", "value": "1" }]
-            },
-            "description": "Returns a paginated list of all HOA user accounts. Available to all authenticated users.\n\n25 users are seeded: 1 SuperAdmin, 4 board members, 17 residents, 3 vendors."
+            "url": { "raw": "{{base_url}}/api/v1/users?page=1", "host": ["{{base_url}}"], "path": ["api","v1","users"], "query": [{"key":"page","value":"1"}] }
           },
-          "response": [
-            {
-              "name": "200 – User List",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/users", "host": ["{{base_url}}"], "path": ["api","v1","users"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"data\": [\n    { \"id\": \"019e4918-40cb-70df-95ab-6572afb292e2\", \"name\": \"Springdale Village HOA\", \"email\": \"admin@springdale-hoa.ph\", \"role\": \"super_admin\", \"role_label\": \"Super Admin\", \"phone\": \"+63 917 000 0001\", \"created_at\": \"2026-05-21T04:18:00+00:00\" },\n    { \"id\": \"019e4918-41eb-733a-80c3-a665b9e7cf2d\", \"name\": \"Rodrigo B. Aquino\", \"email\": \"rodrigo.aquino@springdale-hoa.ph\", \"role\": \"board_member\", \"role_label\": \"Board Member\", \"phone\": \"+63 917 100 2001\", \"created_at\": \"2026-05-21T04:18:00+00:00\" }\n  ],\n  \"links\": { \"first\": \"...\", \"last\": \"...\", \"prev\": null, \"next\": \"...\" },\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 25 }\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Show User",
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users", "{{user_id}}"]
-            },
-            "description": "Returns a single user by **UUID**. The `{{user_id}}` variable holds the UUID of Carlos M. Reyes (seeded resident)."
+            "url": { "raw": "{{base_url}}/api/v1/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","v1","users","{{user_id}}"] }
           },
-          "response": [
-            {
-              "name": "200 – User Detail",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","v1","users","{{user_id}}"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"OK\",\n  \"data\": {\n    \"id\": \"019e4918-455d-73ad-b5f0-4d39dfaa9610\",\n    \"name\": \"Carlos M. Reyes\",\n    \"email\": \"carlos.reyes@gmail.com\",\n    \"role\": \"resident\",\n    \"role_label\": \"Resident\",\n    \"phone\": \"+63 920 100 0005\",\n    \"created_at\": \"2026-05-21T04:18:00+00:00\"\n  }\n}"
-            },
-            {
-              "name": "404 – User Not Found",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/users/00000000-0000-0000-0000-000000000000", "host": ["{{base_url}}"], "path": ["api","v1","users","00000000-0000-0000-0000-000000000000"] }
-              },
-              "status": "Not Found", "code": 404, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": false,\n  \"message\": \"User [00000000-0000-0000-0000-000000000000] not found.\"\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Create User",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 201 – Created', () => pm.response.to.have.status(201));",
-                "pm.test('User has a UUID id', () => pm.expect(pm.response.json().data).to.have.property('id'));"
-              ]
-            }
-          }],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Maribel T. Ocampo\",\n  \"email\": \"maribel.ocampo@gmail.com\",\n  \"password\": \"Springdale@2026\",\n  \"role\": \"resident\",\n  \"phone\": \"+63 920 555 7788\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/users",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users"]
-            },
-            "description": "Creates a new user account. **SuperAdmin only.**\n\n**Required fields:** `name`, `email`, `password` (min 8 chars, mixed case + numbers), `role`\n\n**Valid roles:** `super_admin`, `board_member`, `resident`, `vendor`"
+            "url": { "raw": "{{base_url}}/api/v1/users", "host": ["{{base_url}}"], "path": ["api","v1","users"] }
           },
-          "response": [
-            {
-              "name": "201 – User Created",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Maribel T. Ocampo\",\n  \"email\": \"maribel.ocampo@gmail.com\",\n  \"password\": \"Springdale@2026\",\n  \"role\": \"resident\",\n  \"phone\": \"+63 920 555 7788\"\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/users", "host": ["{{base_url}}"], "path": ["api","v1","users"] }
-              },
-              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"User created successfully.\",\n  \"data\": {\n    \"id\": \"019e4919-0000-7000-a000-000000000001\",\n    \"name\": \"Maribel T. Ocampo\",\n    \"email\": \"maribel.ocampo@gmail.com\",\n    \"role\": \"resident\",\n    \"role_label\": \"Resident\",\n    \"phone\": \"+63 920 555 7788\",\n    \"created_at\": \"2026-05-21T10:00:00+00:00\"\n  }\n}"
-            },
-            {
-              "name": "403 – Unauthorized (not SuperAdmin)",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@gmail.com\",\n  \"password\": \"Springdale@2026\",\n  \"role\": \"resident\"\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/users", "host": ["{{base_url}}"], "path": ["api","v1","users"] }
-              },
-              "status": "Forbidden", "code": 403, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": false,\n  \"message\": \"This action is unauthorized.\"\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Update User",
           "request": {
             "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone\": \"+63 920 555 9900\",\n  \"role\": \"board_member\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users", "{{user_id}}"]
-            },
-            "description": "Partial update (PATCH). All fields are `sometimes` — send only what changes. **SuperAdmin only.**\n\nEmail uniqueness is validated against all rows except the user being updated (exclusion is by UUID)."
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+63 920 555 9900\",\n  \"role\": \"board_member\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/v1/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","v1","users","{{user_id}}"] }
           },
           "response": []
         },
@@ -320,567 +203,507 @@
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users", "{{user_id}}"]
-            },
-            "description": "Soft-deletes a user. The record remains in the database with a `deleted_at` timestamp. **SuperAdmin only.**"
+            "url": { "raw": "{{base_url}}/api/v1/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","v1","users","{{user_id}}"] },
+            "description": "Soft-deletes a user. **SuperAdmin only.**"
           },
-          "response": [
-            {
-              "name": "200 – User Deleted",
-              "originalRequest": {
-                "method": "DELETE",
-                "header": [],
-                "url": { "raw": "{{base_url}}/api/v1/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","v1","users","{{user_id}}"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"User deleted successfully.\",\n  \"data\": null\n}"
-            }
-          ]
+          "response": []
         }
       ]
     },
 
     {
       "name": "🏠 Property Management",
-      "description": "Property (unit) CRUD and resident assignment.\n\n**Authorization:**\n- Create / Update: `super_admin` only\n- Assign / Unassign resident: `super_admin` only\n- View: all authenticated users\n\n**Public identifier:** All property routes use the `uuid` column. The `{{property_id}}` variable holds the UUID of B1-L01 (seeded).\n\n**Seeded properties (20 units across 5 blocks):**\n```\nB1-L01 … B1-L04  (Block 1 — Sampaguita Street)\nB2-L01 … B2-L04  (Block 2 — Ilang-ilang Street)\nB3-L01 … B3-L04  (Block 3 — Narra Street)\nB4-L01 … B4-L04  (Block 4 — Molave Street)\nB5-L01 … B5-L04  (Block 5 — Acacia Street)\n```",
+      "description": "Property (unit) CRUD and resident assignment.\n\n**Seeded:** 20 units across 5 blocks (B1-L01 … B5-L04).\n\n**Authorization:** Create/Update/Assign: `super_admin`. View: all.",
       "item": [
         {
           "name": "List Properties",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Returns paginated properties', () => {",
-                "    pm.expect(pm.response.json()).to.have.property('data');",
-                "    pm.expect(pm.response.json()).to.have.property('meta');",
-                "});"
-              ]
-            }
-          }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/properties?page=1",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "properties"],
-              "query": [{ "key": "page", "value": "1" }]
-            }
+            "url": { "raw": "{{base_url}}/api/v1/properties?page=1", "host": ["{{base_url}}"], "path": ["api","v1","properties"], "query": [{"key":"page","value":"1"}] }
           },
-          "response": [
-            {
-              "name": "200 – Property List",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/properties", "host": ["{{base_url}}"], "path": ["api","v1","properties"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"data\": [\n    {\n      \"id\": \"019e4918-5d4b-70c8-95c5-4d796df31634\",\n      \"unit_number\": \"B1-L01\",\n      \"block\": \"1\",\n      \"floor\": null,\n      \"street_address\": \"1 Sampaguita Street, Springdale Village, Brgy. San Antonio, Biñan City, Laguna 4024\",\n      \"type\": \"single_family\",\n      \"monthly_dues\": \"1200.00\",\n      \"late_fee_rate\": \"0.0200\",\n      \"is_active\": true\n    }\n  ],\n  \"links\": { \"first\": \"...\", \"last\": \"...\", \"prev\": null, \"next\": \"...\" },\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 20 }\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Show Property",
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/properties/{{property_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "properties", "{{property_id}}"]
-            },
-            "description": "Returns a single property by **UUID**, including its current residents. The `{{property_id}}` variable holds the UUID of B1-L01."
+            "url": { "raw": "{{base_url}}/api/v1/properties/{{property_id}}", "host": ["{{base_url}}"], "path": ["api","v1","properties","{{property_id}}"] }
           },
           "response": []
         },
         {
           "name": "Create Property",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 201 – Created', () => pm.response.to.have.status(201));"
-              ]
-            }
-          }],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"unit_number\": \"B6-L01\",\n  \"block\": \"6\",\n  \"street_address\": \"1 Mahogany Street, Springdale Village, Brgy. San Antonio, Biñan City, Laguna 4024\",\n  \"type\": \"single_family\",\n  \"monthly_dues\": 1200.00,\n  \"late_fee_rate\": 0.02,\n  \"is_active\": true\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/properties",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "properties"]
-            },
-            "description": "Creates a new property unit. **SuperAdmin only.**\n\n`unit_number` must be unique. `late_fee_rate` is a decimal between 0 and 1 (e.g. `0.02` = 2%). A UUID is auto-generated for the new property."
+            "url": { "raw": "{{base_url}}/api/v1/properties", "host": ["{{base_url}}"], "path": ["api","v1","properties"] }
           },
-          "response": [
-            {
-              "name": "201 – Property Created",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"unit_number\": \"B6-L01\",\n  \"block\": \"6\",\n  \"street_address\": \"1 Mahogany Street, Springdale Village, Biñan City, Laguna 4024\",\n  \"type\": \"single_family\",\n  \"monthly_dues\": 1200.00,\n  \"late_fee_rate\": 0.02,\n  \"is_active\": true\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/properties", "host": ["{{base_url}}"], "path": ["api","v1","properties"] }
-              },
-              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Property created successfully.\",\n  \"data\": {\n    \"id\": \"019e4919-0001-7000-b000-000000000001\",\n    \"unit_number\": \"B6-L01\",\n    \"block\": \"6\",\n    \"street_address\": \"1 Mahogany Street, Springdale Village, Biñan City, Laguna 4024\",\n    \"type\": \"single_family\",\n    \"monthly_dues\": \"1200.00\",\n    \"late_fee_rate\": \"0.0200\",\n    \"is_active\": true\n  }\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Update Property",
           "request": {
             "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"monthly_dues\": 1500.00,\n  \"is_active\": true\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/properties/{{property_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "properties", "{{property_id}}"]
-            },
-            "description": "Partial update. **SuperAdmin only.** `unit_number` uniqueness ignores the current record (exclusion is by UUID)."
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"monthly_dues\": 1500.00,\n  \"is_active\": true\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/v1/properties/{{property_id}}", "host": ["{{base_url}}"], "path": ["api","v1","properties","{{property_id}}"] }
           },
           "response": []
         },
         {
           "name": "Assign Resident to Property",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200 – Resident assigned', () => pm.response.to.have.status(200));"
-              ]
-            }
-          }],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"user_uuid\": \"{{user_id}}\",\n  \"move_in_at\": \"2026-06-01\",\n  \"move_out_at\": null,\n  \"is_primary_resident\": true\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/properties/{{property_id}}/residents",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "properties", "{{property_id}}", "residents"]
-            },
-            "description": "Links an existing user to a property via the `property_user` pivot table. Uses `syncWithoutDetaching` so multiple residents can share a unit without removing existing assignments.\n\n**Field:** `user_uuid` — the UUID of the user to assign (use `{{user_id}}`).\n\n**SuperAdmin only.**"
+            "url": { "raw": "{{base_url}}/api/v1/properties/{{property_id}}/residents", "host": ["{{base_url}}"], "path": ["api","v1","properties","{{property_id}}","residents"] }
           },
-          "response": [
-            {
-              "name": "200 – Resident Assigned",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"user_uuid\": \"019e4918-455d-73ad-b5f0-4d39dfaa9610\",\n  \"move_in_at\": \"2026-06-01\",\n  \"is_primary_resident\": true\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/properties/{{property_id}}/residents", "host": ["{{base_url}}"], "path": ["api","v1","properties","{{property_id}}","residents"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Resident assigned successfully.\",\n  \"data\": {\n    \"id\": \"019e4918-5d4b-70c8-95c5-4d796df31634\",\n    \"unit_number\": \"B1-L01\",\n    \"residents\": [\n      { \"id\": \"019e4918-455d-73ad-b5f0-4d39dfaa9610\", \"name\": \"Carlos M. Reyes\", \"email\": \"carlos.reyes@gmail.com\", \"pivot\": { \"move_in_at\": \"2026-06-01\", \"is_primary_resident\": true } }\n    ]\n  }\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Unassign Resident from Property",
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/properties/{{property_id}}/residents/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "properties", "{{property_id}}", "residents", "{{user_id}}"]
-            },
-            "description": "Removes a resident from a property (detaches the pivot row). Both `:property` and `:user` path segments accept **UUIDs**. **SuperAdmin only.**"
+            "url": { "raw": "{{base_url}}/api/v1/properties/{{property_id}}/residents/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","v1","properties","{{property_id}}","residents","{{user_id}}"] }
           },
-          "response": [
-            {
-              "name": "200 – Resident Unassigned",
-              "originalRequest": {
-                "method": "DELETE",
-                "header": [],
-                "url": { "raw": "{{base_url}}/api/v1/properties/{{property_id}}/residents/{{user_id}}", "host": ["{{base_url}}"], "path": ["api","v1","properties","{{property_id}}","residents","{{user_id}}"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Resident unassigned successfully.\",\n  \"data\": null\n}"
-            }
-          ]
+          "response": []
         }
       ]
     },
 
     {
       "name": "💰 Financials — Invoices",
-      "description": "HOA dues ledger management.\n\n**Authorization:**\n- Generate / cancel / apply-late-fees / process-payment: `board_member` or `super_admin`\n- View: all authenticated users (residents see own property only)\n\n**Invoice lifecycle:** `pending` → `overdue` (late fees applied) → `paid` (auto on full payment) | `cancelled`\n\n**Note:** `property_id` in request bodies is a **UUID string** (matches the `uuid` column, not the integer PK).",
+      "description": "HOA dues ledger management.\n\n**Invoice lifecycle:** `pending` → `overdue` → `paid` | `cancelled`\n\n**Authorization:** Generate/cancel/pay: `board_member`+. View: all authenticated.",
       "item": [
         {
           "name": "List Invoices for Property",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Returns paginated list', () => {",
-                "    pm.expect(pm.response.json()).to.have.property('data');",
-                "    pm.expect(pm.response.json()).to.have.property('meta');",
-                "});"
-              ]
-            }
-          }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/financials/properties/{{property_id}}/invoices?page=1",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "financials", "properties", "{{property_id}}", "invoices"],
-              "query": [{ "key": "page", "value": "1" }]
-            },
-            "description": "Returns paginated invoices for a property identified by its **UUID**. Residents can only query their own property. Board members can query any.\n\nThe `{{property_id}}` variable holds the UUID of B1-L01 (6 seeded invoices)."
+            "url": { "raw": "{{base_url}}/api/v1/financials/properties/{{property_id}}/invoices?page=1", "host": ["{{base_url}}"], "path": ["api","v1","financials","properties","{{property_id}}","invoices"], "query": [{"key":"page","value":"1"}] }
           },
-          "response": [
-            {
-              "name": "200 – Invoice List (B1-L01)",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/financials/properties/{{property_id}}/invoices", "host": ["{{base_url}}"], "path": ["api","v1","financials","properties","{{property_id}}","invoices"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"data\": [\n    {\n      \"id\": \"019e4918-612f-7386-a8ce-61a7a71dfc61\",\n      \"description\": \"Monthly HOA Dues – 2025-12\",\n      \"base_amount\": \"1200.00\",\n      \"late_fee_amount\": \"0.00\",\n      \"total_amount\": \"1200.00\",\n      \"status\": \"paid\",\n      \"status_label\": \"Paid\",\n      \"due_at\": \"2026-01-01\",\n      \"period_month\": \"2025-12-01\",\n      \"paid_at\": \"2025-12-28T00:00:00+00:00\",\n      \"payments\": []\n    }\n  ],\n  \"links\": {},\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 6 }\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Show Invoice",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Invoice has UUID, status, total_amount', () => {",
-                "    const d = pm.response.json().data;",
-                "    pm.expect(d).to.have.property('id');",
-                "    pm.expect(d).to.have.property('status');",
-                "    pm.expect(d).to.have.property('total_amount');",
-                "});"
-              ]
-            }
-          }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_overdue}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "financials", "invoices", "{{invoice_overdue}}"]
-            },
-            "description": "Retrieves a single invoice by UUID. Includes the property and all payment records.\n\n**Collection variables:**\n- `{{invoice_paid}}` — status: paid\n- `{{invoice_overdue}}` — status: overdue (with late fee)\n- `{{invoice_pending}}` — status: pending"
+            "url": { "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_overdue}}", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","{{invoice_overdue}}"] }
           },
-          "response": [
-            {
-              "name": "200 – Overdue Invoice (with late fee)",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_overdue}}", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","{{invoice_overdue}}"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"OK\",\n  \"data\": {\n    \"id\": \"019e4918-682a-738f-a200-c22a832a22b9\",\n    \"property\": { \"unit_number\": \"B2-L02\" },\n    \"description\": \"Monthly HOA Dues – 2026-03\",\n    \"base_amount\": \"800.00\",\n    \"late_fee_amount\": \"16.00\",\n    \"total_amount\": \"816.00\",\n    \"status\": \"overdue\",\n    \"status_label\": \"Overdue\",\n    \"due_at\": \"2026-04-01\",\n    \"period_month\": \"2026-03-01\",\n    \"paid_at\": null,\n    \"payments\": []\n  }\n}"
-            },
-            {
-              "name": "404 – Not Found",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/00000000-0000-0000-0000-000000000000", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","00000000-0000-0000-0000-000000000000"] }
-              },
-              "status": "Not Found", "code": 404, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": false,\n  \"message\": \"Invoice [00000000-0000-0000-0000-000000000000] not found.\"\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Generate Monthly Dues Invoice",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 201 – Created', () => pm.response.to.have.status(201));",
-                "pm.test('Invoice UUID present', () => pm.expect(pm.response.json().data).to.have.property('id'));"
-              ]
-            }
-          }],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"property_id\": \"{{property_id}}\",\n  \"period_month\": \"2026-07\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/financials/invoices",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "financials", "invoices"]
-            },
-            "description": "Generates a single HOA dues invoice for one property and period.\n\n**Rules:**\n- `property_id` — **UUID** of the property (use `{{property_id}}`)\n- `period_month` in `Y-m` format (e.g. `2026-07`)\n- Idempotent: returns `409` if invoice for this property + period already exists\n- Due date auto-set to the 1st of the next month\n- **Board member / SuperAdmin only**"
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"property_id\": \"{{property_id}}\",\n  \"period_month\": \"2026-08\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/v1/financials/invoices", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices"] }
           },
-          "response": [
-            {
-              "name": "201 – Invoice Generated",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"property_id\": \"019e4918-5d4b-70c8-95c5-4d796df31634\",\n  \"period_month\": \"2026-07\"\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices"] }
-              },
-              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Invoice generated successfully.\",\n  \"data\": {\n    \"id\": \"019e4900-abcd-7000-a000-000000000001\",\n    \"property\": { \"unit_number\": \"B1-L01\", \"monthly_dues\": \"1200.00\" },\n    \"base_amount\": \"1200.00\",\n    \"late_fee_amount\": \"0.00\",\n    \"total_amount\": \"1200.00\",\n    \"status\": \"pending\",\n    \"due_at\": \"2026-08-01\",\n    \"period_month\": \"2026-07-01\"\n  }\n}"
-            },
-            {
-              "name": "409 – Duplicate Period",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"property_id\": \"019e4918-5d4b-70c8-95c5-4d796df31634\",\n  \"period_month\": \"2025-12\"\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices"] }
-              },
-              "status": "Conflict", "code": 409, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": false,\n  \"message\": \"An invoice for property [B1-L01] already exists for period [2025-12].\"\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Generate Bulk Monthly Dues (All Properties)",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Returns created + skipped counts', () => {",
-                "    const d = pm.response.json().data;",
-                "    pm.expect(d).to.have.property('created');",
-                "    pm.expect(d).to.have.property('skipped');",
-                "});"
-              ]
-            }
-          }],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"period_month\": \"2026-08\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/financials/invoices/bulk",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "financials", "invoices", "bulk"]
-            },
-            "description": "Generates monthly dues invoices for **all active properties** for the given period in one shot. Properties that already have an invoice for the period are silently skipped (idempotent).\n\nEquivalent to running `php artisan hoa:generate-monthly-dues 2026-08` from the CLI.\n\n**Board member / SuperAdmin only.**"
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"period_month\": \"2026-08\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/v1/financials/invoices/bulk", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","bulk"] }
           },
-          "response": [
-            {
-              "name": "200 – Bulk Generation Result",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"period_month\": \"2026-08\"\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/bulk", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","bulk"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Generated 20 invoice(s) for period 2026-08.\",\n  \"data\": {\n    \"created\": 20,\n    \"skipped\": 0\n  }\n}"
-            },
-            {
-              "name": "200 – Second Run (All Skipped)",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"period_month\": \"2026-08\"\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/bulk", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","bulk"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Generated 0 invoice(s) for period 2026-08.\",\n  \"data\": {\n    \"created\": 0,\n    \"skipped\": 20\n  }\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Process Payment",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 201 – Payment Created', () => pm.response.to.have.status(201));",
-                "pm.test('Payment has reference and method', () => {",
-                "    const d = pm.response.json().data;",
-                "    pm.expect(d).to.have.property('transaction_reference');",
-                "    pm.expect(d).to.have.property('payment_method');",
-                "});"
-              ]
-            }
-          }],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 816.00,\n  \"payment_method\": \"online\",\n  \"transaction_reference\": \"GCH-20260521-98765\",\n  \"notes\": \"GCash payment — March 2026 overdue dues + late fee.\",\n  \"paid_at\": \"2026-05-21 10:30:00\"\n}",
+              "raw": "{\n  \"amount\": 816.00,\n  \"payment_method\": \"online\",\n  \"transaction_reference\": \"GCH-20260526-98765\",\n  \"notes\": \"GCash payment — March 2026 overdue dues + late fee.\",\n  \"paid_at\": \"2026-05-26 10:30:00\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_overdue}}/payments",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "financials", "invoices", "{{invoice_overdue}}", "payments"]
-            },
-            "description": "Records a payment against an invoice (atomic DB transaction).\n\n**Business rules:**\n- Invoice must be `pending` or `overdue`; otherwise `409 Conflict`\n- Invoice auto-transitions to `paid` when cumulative payments ≥ `total_amount`\n- `received_by` defaults to the authenticated user if omitted\n\n**Payment methods:** `cash`, `check`, `bank_transfer`, `credit_card`, `online`"
+            "url": { "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_overdue}}/payments", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","{{invoice_overdue}}","payments"] }
           },
-          "response": [
-            {
-              "name": "201 – Payment Recorded & Invoice Closed",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"amount\": 816.00,\n  \"payment_method\": \"online\",\n  \"transaction_reference\": \"GCH-20260521-98765\"\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_overdue}}/payments", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","{{invoice_overdue}}","payments"] }
-              },
-              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Payment recorded successfully.\",\n  \"data\": {\n    \"id\": \"019e4901-abcd-7000-b000-000000000001\",\n    \"amount\": \"816.00\",\n    \"payment_method\": \"online\",\n    \"payment_method_label\": \"Online Payment\",\n    \"transaction_reference\": \"GCH-20260521-98765\",\n    \"received_by\": { \"id\": \"019e4918-4317-7206-bdd3-064420bf23cb\", \"name\": \"Ma. Lourdes C. Santos\", \"role\": \"board_member\" },\n    \"paid_at\": \"2026-05-21T10:30:00+00:00\"\n  }\n}"
-            },
-            {
-              "name": "409 – Invoice Not Settleable",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"amount\": 1200.00,\n  \"payment_method\": \"cash\"\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_paid}}/payments", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","{{invoice_paid}}","payments"] }
-              },
-              "status": "Conflict", "code": 409, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": false,\n  \"message\": \"Invoice [019e4918-612f-7386-a8ce-61a7a71dfc61] has status [paid] and cannot accept payments.\"\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Cancel Invoice",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Invoice status is cancelled', () => pm.expect(pm.response.json().data.status).to.equal('cancelled'));"
-              ]
-            }
-          }],
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_pending}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "financials", "invoices", "{{invoice_pending}}"]
-            },
-            "description": "Cancels a `pending` or `overdue` invoice. Cannot cancel `paid` or already `cancelled` invoices.\n\n**Board member / SuperAdmin only.**"
+            "url": { "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_pending}}", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","{{invoice_pending}}"] }
           },
-          "response": [
-            {
-              "name": "200 – Invoice Cancelled",
-              "originalRequest": {
-                "method": "DELETE",
-                "header": [],
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_pending}}", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","{{invoice_pending}}"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Invoice cancelled successfully.\",\n  \"data\": {\n    \"id\": \"019e4918-61ed-734b-b4e5-af153aa9345c\",\n    \"status\": \"cancelled\",\n    \"status_label\": \"Cancelled\"\n  }\n}"
-            },
-            {
-              "name": "409 – Cannot Cancel (already paid)",
-              "originalRequest": {
-                "method": "DELETE",
-                "header": [],
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/{{invoice_paid}}", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","{{invoice_paid}}"] }
-              },
-              "status": "Conflict", "code": 409, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": false,\n  \"message\": \"Invoice [019e4918-612f-7386-a8ce-61a7a71dfc61] has status [paid] and cannot be cancelled.\"\n}"
-            }
-          ]
+          "response": []
         },
         {
           "name": "Apply Late Fees (Batch)",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Returns updated_invoices count', () => {",
-                "    pm.expect(pm.response.json().data).to.have.property('updated_invoices');",
-                "});"
-              ]
-            }
-          }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Accept", "value": "application/json" }],
             "body": { "mode": "none" },
+            "url": { "raw": "{{base_url}}/api/v1/financials/invoices/apply-late-fees", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","apply-late-fees"] }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "🚨 Violations",
+      "description": "Violation logging, state-machine transitions, and geotagged evidence.\n\n**State machine:** `draft → issued → appealed|paid|resolved`\n\n**Authorization:** Create/update/evidence: `board_member`+. View: all.",
+      "item": [
+        {
+          "name": "List All Violations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
-              "raw": "{{base_url}}/api/v1/financials/invoices/apply-late-fees",
+              "raw": "{{base_url}}/api/v1/violations?page=1",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "financials", "invoices", "apply-late-fees"]
+              "path": ["api","v1","violations"],
+              "query": [
+                { "key": "page",        "value": "1" },
+                { "key": "status",      "value": "",  "disabled": true, "description": "draft|issued|appealed|paid|resolved" },
+                { "key": "property_id", "value": "",  "disabled": true, "description": "Filter by property UUID" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Show Violation",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/violations/{{violation_issued}}", "host": ["{{base_url}}"], "path": ["api","v1","violations","{{violation_issued}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Violation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"property_id\": \"{{property_id}}\",\n  \"title\": \"Illegal Fence Construction Beyond Property Line\",\n  \"description\": \"Occupant constructed a hollow block fence extension that encroaches approximately 45 cm into the HOA-owned perimeter road easement. Construction began without HOA Architectural Committee approval and no Barangay building clearance was obtained. The encroachment was measured and documented on May 26, 2026.\",\n  \"fine_amount\": 2500.00,\n  \"evidence_images\": [\n    {\n      \"path\": \"violations/2026/05/b1-l01-fence-001.jpg\",\n      \"lat\": 14.34187,\n      \"lng\": 121.10923,\n      \"captured_at\": \"2026-05-26 09:00:00\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "description": "Batch operation. Scans all `pending` invoices whose `due_at` has passed, applies the property's `late_fee_rate` surcharge, and sets status to `overdue`. Each invoice update is wrapped in its own transaction.\n\nEquivalent to `php artisan hoa:apply-late-fees`.\n\n**Board member / SuperAdmin only.**"
+            "url": { "raw": "{{base_url}}/api/v1/violations", "host": ["{{base_url}}"], "path": ["api","v1","violations"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Violation Status (Draft → Issued)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"issued\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/v1/violations/{{violation_draft}}/status", "host": ["{{base_url}}"], "path": ["api","v1","violations","{{violation_draft}}","status"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Append Evidence Images",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"evidence_images\": [\n    {\n      \"path\": \"violations/2026/05/followup-001.jpg\",\n      \"lat\": 14.34089,\n      \"lng\": 121.10812,\n      \"captured_at\": \"2026-05-26 14:00:00\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/violations/{{violation_issued}}/evidence", "host": ["{{base_url}}"], "path": ["api","v1","violations","{{violation_issued}}","evidence"] }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "📢 Announcements",
+      "description": "HOA bulletin board — notices posted by the board to homeowners and residents.\n\n**Audiences:** `all`, `residents`, `board_members`\n\n**Authorization:**\n- Create / Update / Delete: `board_member` or `super_admin`\n- List / Show: all authenticated users (residents see published + non-board-only)\n\n**8 records seeded** (6 published, 1 draft, 1 expired). After seeding, run List Announcements and copy a UUID into `{{announcement_id}}`.",
+      "item": [
+        {
+          "name": "List Announcements",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const json = pm.response.json();",
+                "if (json.data && json.data.length > 0) {",
+                "    pm.collectionVariables.set('announcement_id', json.data[0].id);",
+                "    pm.test('announcement_id saved', () => pm.expect(json.data[0].id).to.be.a('string'));",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/announcements?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","announcements"],
+              "query": [{ "key": "page", "value": "1" }]
+            },
+            "description": "Returns announcements visible to the authenticated user.\n\n- **Board/Admin:** sees all announcements (published + drafts)\n- **Resident:** sees only published, non-expired announcements for audience `all` or `residents`\n\nResults are ordered: pinned first, then by `published_at` descending.\n\n**8 seeded:** Annual General Assembly notice (pinned), water interruption (pinned), dues reminder, renovation guidelines, waste schedule, street light completion, security protocol draft, expired pool hours."
           },
           "response": [
             {
-              "name": "200 – Late Fees Applied",
+              "name": "200 – Announcement List",
               "originalRequest": {
-                "method": "POST",
-                "header": [],
-                "url": { "raw": "{{base_url}}/api/v1/financials/invoices/apply-late-fees", "host": ["{{base_url}}"], "path": ["api","v1","financials","invoices","apply-late-fees"] }
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/announcements", "host": ["{{base_url}}"], "path": ["api","v1","announcements"] }
               },
               "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"3 invoice(s) marked as overdue with late fees applied.\",\n  \"data\": {\n    \"updated_invoices\": 3\n  }\n}"
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"<uuid>\",\n      \"author\": { \"id\": \"<uuid>\", \"name\": \"Rodrigo B. Aquino\", \"role\": \"board_member\" },\n      \"title\": \"Annual General Assembly 2026 – June 14, Multipurpose Hall\",\n      \"body\": \"Dear Homeowners and Residents...\",\n      \"audience\": \"all\",\n      \"audience_label\": \"All Members\",\n      \"is_pinned\": true,\n      \"published_at\": \"2026-05-20T08:00:00+00:00\",\n      \"expires_at\": \"2026-06-14T23:59:00+00:00\",\n      \"created_at\": \"2026-05-26T00:00:00+00:00\"\n    }\n  ],\n  \"links\": {},\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 8 }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Show Announcement",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/announcements/{{announcement_id}}", "host": ["{{base_url}}"], "path": ["api","v1","announcements","{{announcement_id}}"] },
+            "description": "Returns a single announcement by UUID."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Announcement",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "if (pm.response.code === 201) {",
+                "    pm.collectionVariables.set('announcement_id', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Community Clean-Up Day – June 7, 2026\",\n  \"body\": \"Dear Residents,\\n\\nThe HOA invites all households to participate in our quarterly Community Clean-Up Day on Saturday, June 7, 2026 from 7:00 AM – 10:00 AM.\\n\\nMeeting point: HOA basketball court. Gloves and trash bags will be provided. Breakfast snacks will be served after the activity.\\n\\nYour participation makes Springdale Village a cleaner and better place for everyone!\",\n  \"audience\": \"residents\",\n  \"is_pinned\": false,\n  \"published_at\": \"2026-05-26T08:00:00\",\n  \"expires_at\": \"2026-06-07T12:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/announcements", "host": ["{{base_url}}"], "path": ["api","v1","announcements"] },
+            "description": "Creates an announcement. **Board member / SuperAdmin only.**\n\n**Fields:**\n- `audience`: `all` | `residents` | `board_members`\n- `published_at`: null = draft; past/current date = immediately published\n- `expires_at`: optional; announcement stops appearing after this timestamp\n- `is_pinned`: boolean, pinned items appear at the top of the list"
+          },
+          "response": [
+            {
+              "name": "201 – Announcement Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"title\": \"Community Clean-Up Day – June 7, 2026\",\n  \"body\": \"Dear Residents...\",\n  \"audience\": \"residents\",\n  \"is_pinned\": false,\n  \"published_at\": \"2026-05-26T08:00:00\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/announcements", "host": ["{{base_url}}"], "path": ["api","v1","announcements"] }
+              },
+              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Announcement created successfully.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"author\": { \"name\": \"Rodrigo B. Aquino\" },\n    \"title\": \"Community Clean-Up Day – June 7, 2026\",\n    \"audience\": \"residents\",\n    \"audience_label\": \"Residents Only\",\n    \"is_pinned\": false,\n    \"published_at\": \"2026-05-26T08:00:00+00:00\",\n    \"expires_at\": \"2026-06-07T12:00:00+00:00\",\n    \"created_at\": \"2026-05-26T08:00:00+00:00\"\n  }\n}"
+            },
+            {
+              "name": "403 – Forbidden (Resident)",
+              "originalRequest": {
+                "method": "POST", "header": [], "body": { "mode": "raw", "raw": "{}" },
+                "url": { "raw": "{{base_url}}/api/v1/announcements", "host": ["{{base_url}}"], "path": ["api","v1","announcements"] }
+              },
+              "status": "Forbidden", "code": 403, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"This action is unauthorized.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Announcement",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_pinned\": true,\n  \"expires_at\": \"2026-06-30T23:59:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/announcements/{{announcement_id}}", "host": ["{{base_url}}"], "path": ["api","v1","announcements","{{announcement_id}}"] },
+            "description": "Partial update. All fields are `sometimes`. **Board member / SuperAdmin only.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Announcement",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/announcements/{{announcement_id}}", "host": ["{{base_url}}"], "path": ["api","v1","announcements","{{announcement_id}}"] },
+            "description": "Soft-deletes an announcement. **Board member / SuperAdmin only.**"
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "🔧 Maintenance Requests",
+      "description": "Residents submit maintenance issues; the board tracks, assigns, and resolves them.\n\n**Status machine:** `submitted → in_review → in_progress → resolved → closed`\n\n**Categories:** `plumbing`, `electrical`, `hvac`, `structural`, `landscaping`, `common_area`, `other`\n\n**Priorities:** `low`, `normal`, `high`, `urgent`\n\n**Authorization:**\n- Create: any authenticated user\n- Update status / assign: `board_member` or `super_admin`\n- List: board sees all; residents see only their own submissions\n\n**9 records seeded.** Run List Maintenance Requests and copy a UUID into `{{maintenance_id}}`.",
+      "item": [
+        {
+          "name": "List Maintenance Requests",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const json = pm.response.json();",
+                "if (json.data && json.data.length > 0) {",
+                "    pm.collectionVariables.set('maintenance_id', json.data[0].id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/maintenance?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","maintenance"],
+              "query": [
+                { "key": "page",        "value": "1" },
+                { "key": "property_id", "value": "",  "disabled": true, "description": "Filter by property UUID" },
+                { "key": "status",      "value": "",  "disabled": true, "description": "submitted|in_review|in_progress|resolved|closed" }
+              ]
+            },
+            "description": "Returns paginated maintenance requests ordered by `created_at` descending.\n\n**Resident behavior:** automatically scoped to own submissions — cannot see other residents' requests.\n**Board behavior:** sees all requests across all properties.\n\n**Optional filters:** `?property_id={{property_id}}` and/or `?status=in_progress`"
+          },
+          "response": [
+            {
+              "name": "200 – Maintenance Request List",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/maintenance", "host": ["{{base_url}}"], "path": ["api","v1","maintenance"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"<uuid>\",\n      \"property\": { \"unit_number\": \"B5-L01\" },\n      \"submitter\": { \"name\": \"Benjamin A. Magno\", \"role\": \"resident\" },\n      \"assignee\": null,\n      \"category\": \"structural\",\n      \"category_label\": \"Structural\",\n      \"title\": \"Crack in Perimeter Wall – Block 5, Near Gate 2\",\n      \"priority\": \"urgent\",\n      \"priority_label\": \"Urgent\",\n      \"status\": \"submitted\",\n      \"status_label\": \"Submitted\",\n      \"resolution_notes\": null,\n      \"resolved_at\": null,\n      \"created_at\": \"2026-05-26T00:00:00+00:00\"\n    }\n  ],\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 9 }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Show Maintenance Request",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/maintenance/{{maintenance_id}}", "host": ["{{base_url}}"], "path": ["api","v1","maintenance","{{maintenance_id}}"] },
+            "description": "Returns a single maintenance request with full details. Residents can only view their own submissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Maintenance Request",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "if (pm.response.code === 201) {",
+                "    pm.collectionVariables.set('maintenance_id', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"property_id\": \"{{property_id}}\",\n  \"category\": \"plumbing\",\n  \"title\": \"Leaking Kitchen Faucet – Unit B1-L01\",\n  \"description\": \"The kitchen faucet in my unit has been dripping constantly for the past three days. The leak is coming from the base of the faucet handle and has caused water damage to the cabinet underneath. I have placed a bucket under the sink as a temporary measure. Please send a plumber for assessment and repair at the earliest convenience.\",\n  \"priority\": \"normal\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/maintenance", "host": ["{{base_url}}"], "path": ["api","v1","maintenance"] },
+            "description": "Submits a new maintenance request. **Any authenticated user.**\n\n`property_id` must be a **UUID**. The request is automatically created with status `submitted` and linked to the authenticated user as `submitted_by`.\n\n**Required:** `property_id`, `category`, `title` (5–200 chars), `description` (20–5000 chars)\n**Optional:** `priority` (default: `normal`)"
+          },
+          "response": [
+            {
+              "name": "201 – Request Submitted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"property_id\": \"{{property_id}}\",\n  \"category\": \"plumbing\",\n  \"title\": \"Leaking Kitchen Faucet\",\n  \"description\": \"The kitchen faucet has been dripping constantly for three days...\",\n  \"priority\": \"normal\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/maintenance", "host": ["{{base_url}}"], "path": ["api","v1","maintenance"] }
+              },
+              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Maintenance request submitted successfully.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"property\": { \"unit_number\": \"B1-L01\" },\n    \"submitter\": { \"name\": \"Carlos M. Reyes\" },\n    \"assignee\": null,\n    \"category\": \"plumbing\",\n    \"category_label\": \"Plumbing\",\n    \"title\": \"Leaking Kitchen Faucet\",\n    \"priority\": \"normal\",\n    \"priority_label\": \"Normal\",\n    \"status\": \"submitted\",\n    \"status_label\": \"Submitted\",\n    \"resolution_notes\": null,\n    \"resolved_at\": null,\n    \"created_at\": \"2026-05-26T09:00:00+00:00\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Maintenance Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_review\",\n  \"assigned_to\": null,\n  \"resolution_notes\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/maintenance/{{maintenance_id}}/status", "host": ["{{base_url}}"], "path": ["api","v1","maintenance","{{maintenance_id}}","status"] },
+            "description": "Transitions the maintenance request through its state machine. **Board member / SuperAdmin only.**\n\n**Valid transitions:**\n- `submitted → in_review | closed`\n- `in_review → in_progress | closed`\n- `in_progress → resolved | closed`\n- `resolved → closed`\n\n**Optional fields:**\n- `assigned_to` — UUID of a user (vendor or board member) to assign the work to\n- `resolution_notes` — required when transitioning to `resolved`\n\n`422` is returned on invalid transitions."
+          },
+          "response": [
+            {
+              "name": "200 – Status Updated to In Review",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"status\": \"in_review\" }" },
+                "url": { "raw": "{{base_url}}/api/v1/maintenance/{{maintenance_id}}/status", "host": ["{{base_url}}"], "path": ["api","v1","maintenance","{{maintenance_id}}","status"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Status updated.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"status\": \"in_review\",\n    \"status_label\": \"In Review\",\n    \"resolution_notes\": null,\n    \"resolved_at\": null\n  }\n}"
+            },
+            {
+              "name": "200 – Status Updated to Resolved",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"resolved\",\n  \"resolution_notes\": \"Plumber repaired the faucet on May 28, 2026. Replaced washer and O-ring. Cost: ₱800 (labor). No replacement parts needed.\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/maintenance/{{maintenance_id}}/status", "host": ["{{base_url}}"], "path": ["api","v1","maintenance","{{maintenance_id}}","status"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Status updated.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"status\": \"resolved\",\n    \"status_label\": \"Resolved\",\n    \"resolution_notes\": \"Plumber repaired the faucet on May 28, 2026...\",\n    \"resolved_at\": \"2026-05-28T15:00:00+00:00\"\n  }\n}"
+            },
+            {
+              "name": "422 – Invalid Transition",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"status\": \"resolved\" }" },
+                "url": { "raw": "{{base_url}}/api/v1/maintenance/{{maintenance_id}}/status", "host": ["{{base_url}}"], "path": ["api","v1","maintenance","{{maintenance_id}}","status"] }
+              },
+              "status": "Unprocessable Entity", "code": 422, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot transition from [submitted] to [resolved].\"\n}"
             }
           ]
         }
@@ -888,244 +711,831 @@
     },
 
     {
-      "name": "🚨 Violations",
-      "description": "Violation logging, state-machine transitions, and geotagged evidence management.\n\n**State machine:**\n```\nDraft → Issued\nIssued → Appealed | Paid | Resolved\nAppealed → Issued | Resolved\nPaid → Resolved\nResolved → ❌ (terminal)\n```\n\nOn `Issued` transition, all property residents receive a queued mail notification (`ViolationIssuedNotification`).\n\n**Note:** `property_id` in the Create Violation request body is a **UUID string**.\n\n**Filter the list** with `?status=issued&property_id={{property_id}}`.",
+      "name": "🏊 Amenities",
+      "description": "Shared facility registry — pool, gym, hall, basketball court, etc.\n\n**Authorization:**\n- Create / Update: `board_member` or `super_admin`\n- List / Show: all authenticated users\n\n**5 seeded:** Swimming Pool, Multipurpose Hall, Fitness Center, Basketball Court (all active), Function Room (inactive – under renovation). Run List Amenities and copy a UUID into `{{amenity_id}}`.",
       "item": [
         {
-          "name": "List All Violations",
+          "name": "List Amenities",
           "event": [{
             "listen": "test",
             "script": {
               "type": "text/javascript",
               "exec": [
                 "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Returns array in data', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                "const json = pm.response.json();",
+                "if (json.data && json.data.length > 0) {",
+                "    pm.collectionVariables.set('amenity_id', json.data[0].id);",
+                "}"
               ]
             }
           }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/violations?page=1",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "violations"],
-              "query": [
-                { "key": "page",        "value": "1",      "description": "Pagination page" },
-                { "key": "status",      "value": "",       "description": "Filter by ViolationStatus: draft|issued|appealed|paid|resolved", "disabled": true },
-                { "key": "property_id", "value": "",       "description": "Filter by property UUID (e.g. 019e4918-5d4b-70c8-95c5-4d796df31634)", "disabled": true }
-              ]
-            },
-            "description": "Returns paginated violations ordered by `issued_at` descending.\n\n**Optional query filters:**\n- `?status=issued` — filter by status (any ViolationStatus value)\n- `?property_id={{property_id}}` — filter by property **UUID**\n- Combine: `?status=issued&property_id={{property_id}}`\n\n**10 violations seeded across Springdale Village.**"
+            "url": { "raw": "{{base_url}}/api/v1/amenities?page=1", "host": ["{{base_url}}"], "path": ["api","v1","amenities"], "query": [{"key":"page","value":"1"}] },
+            "description": "Returns all amenities. Board/admin see all including inactive; residents see active only."
           },
           "response": [
             {
-              "name": "200 – All Violations",
+              "name": "200 – Amenity List",
               "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/violations", "host": ["{{base_url}}"], "path": ["api","v1","violations"] }
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/amenities", "host": ["{{base_url}}"], "path": ["api","v1","amenities"] }
               },
               "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"data\": [\n    {\n      \"id\": \"019e4918-747b-721b-b19b-004c80ce482f\",\n      \"property\": { \"unit_number\": \"B3-L01\" },\n      \"reporter\": { \"name\": \"Rodrigo B. Aquino\", \"role\": \"board_member\" },\n      \"title\": \"Illegal Parking \\u2013 Blocking Adjacent Driveway\",\n      \"status\": \"issued\",\n      \"status_label\": \"Issued\",\n      \"fine_amount\": \"750.00\",\n      \"issued_at\": \"2026-05-09T14:30:00+00:00\",\n      \"resolved_at\": null\n    }\n  ],\n  \"links\": {},\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 10 }\n}"
-            },
-            {
-              "name": "200 – Filtered by status=issued&property_id={{property_id}}",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/violations?status=issued&property_id={{property_id}}", "host": ["{{base_url}}"], "path": ["api","v1","violations"], "query": [{"key":"status","value":"issued"},{"key":"property_id","value":"{{property_id}}"}] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"data\": [\n    {\n      \"id\": \"019e4918-747b-721b-b19b-004c80ce482f\",\n      \"title\": \"Illegal Parking \\u2013 Blocking Adjacent Driveway\",\n      \"status\": \"issued\",\n      \"fine_amount\": \"750.00\"\n    }\n  ],\n  \"meta\": { \"total\": 1 }\n}"
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"<uuid>\",\n      \"name\": \"Swimming Pool\",\n      \"description\": \"Outdoor lap pool (25m × 10m)...\",\n      \"location\": \"HOA Common Area – Near the Multipurpose Hall\",\n      \"capacity\": 30,\n      \"is_active\": true,\n      \"created_at\": \"2026-05-26T00:00:00+00:00\"\n    },\n    {\n      \"id\": \"<uuid>\",\n      \"name\": \"Function Room\",\n      \"capacity\": 20,\n      \"is_active\": false,\n      \"created_at\": \"2026-05-26T00:00:00+00:00\"\n    }\n  ],\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 5 }\n}"
             }
           ]
         },
         {
-          "name": "Show Violation",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Has evidence_images array and fine_amount', () => {",
-                "    const d = pm.response.json().data;",
-                "    pm.expect(d.evidence_images).to.be.an('array');",
-                "    pm.expect(d).to.have.property('fine_amount');",
-                "});"
-              ]
-            }
-          }],
+          "name": "Show Amenity",
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": {
-              "raw": "{{base_url}}/api/v1/violations/{{violation_issued}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "violations", "{{violation_issued}}"]
-            },
-            "description": "Returns full violation detail including property, reporter, geotagged evidence, and timestamps."
+            "url": { "raw": "{{base_url}}/api/v1/amenities/{{amenity_id}}", "host": ["{{base_url}}"], "path": ["api","v1","amenities","{{amenity_id}}"] }
           },
-          "response": [
-            {
-              "name": "200 – Issued Violation (B3-L01 Parking)",
-              "originalRequest": {
-                "method": "GET",
-                "header": [{ "key": "Accept", "value": "application/json" }],
-                "url": { "raw": "{{base_url}}/api/v1/violations/{{violation_issued}}", "host": ["{{base_url}}"], "path": ["api","v1","violations","{{violation_issued}}"] }
-              },
-              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"OK\",\n  \"data\": {\n    \"id\": \"019e4918-747b-721b-b19b-004c80ce482f\",\n    \"property\": { \"unit_number\": \"B3-L01\", \"street_address\": \"1 Narra Street, Springdale Village, Biñan City, Laguna 4024\" },\n    \"reporter\": { \"name\": \"Rodrigo B. Aquino\", \"role\": \"board_member\" },\n    \"title\": \"Illegal Parking \\u2013 Blocking Adjacent Driveway\",\n    \"description\": \"A Toyota Innova with plate number ABC-1234...\",\n    \"status\": \"issued\",\n    \"status_label\": \"Issued\",\n    \"fine_amount\": \"750.00\",\n    \"evidence_images\": [\n      { \"path\": \"violations/2026/05/b3-l01-parking-001.jpg\", \"lat\": 14.34089, \"lng\": 121.10812, \"captured_at\": \"2026-05-08 08:05:00\" },\n      { \"path\": \"violations/2026/05/b3-l01-parking-002.jpg\", \"lat\": 14.34085, \"lng\": 121.10809, \"captured_at\": \"2026-05-08 11:52:00\" }\n    ],\n    \"issued_at\": \"2026-05-09T14:30:00+00:00\",\n    \"resolved_at\": null\n  }\n}"
-            }
-          ]
+          "response": []
         },
         {
-          "name": "Create Violation",
+          "name": "Create Amenity",
           "event": [{
             "listen": "test",
             "script": {
               "type": "text/javascript",
               "exec": [
                 "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                "pm.test('Created with Draft status', () => pm.expect(pm.response.json().data.status).to.equal('draft'));"
+                "if (pm.response.code === 201) {",
+                "    pm.collectionVariables.set('amenity_id', pm.response.json().data.id);",
+                "}"
               ]
             }
           }],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"property_id\": \"019e4918-5de4-7272-ab35-bc3a10645324\",\n  \"title\": \"Illegal Fence Construction Beyond Property Line\",\n  \"description\": \"Occupant of B2-L03 has constructed a hollow block fence extension that encroaches approximately 45 cm into the HOA-owned perimeter road easement along the Ilang-ilang Street side of the property. Construction began without HOA Architectural Committee approval and no Barangay building clearance was obtained. The encroachment was measured and documented by the HOA maintenance team on May 20, 2026.\",\n  \"fine_amount\": 2500.00,\n  \"evidence_images\": [\n    {\n      \"path\": \"violations/2026/05/b2-l03-fence-001.jpg\",\n      \"lat\": 14.34058,\n      \"lng\": 121.10851,\n      \"captured_at\": \"2026-05-20 09:00:00\"\n    }\n  ]\n}",
+              "raw": "{\n  \"name\": \"Covered Car Park\",\n  \"description\": \"Covered parking area with 10 slots available for overnight guest vehicles. Reservation required 24 hours in advance. Maximum stay: 3 consecutive nights.\",\n  \"location\": \"HOA Perimeter Road – Near Gate 1\",\n  \"capacity\": 10,\n  \"is_active\": true\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/violations",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "violations"]
-            },
-            "description": "Logs a new violation in `Draft` status. **Board member / SuperAdmin only.**\n\n**`property_id`** must be the **UUID** of the target property (not an integer). The example uses the UUID of B2-L03.\n\nGPS coordinates must be valid (lat -90..90, lng -180..180). Biñan City area: lat ≈ 14.34, lng ≈ 121.11.\n\n`fine_amount` is optional at draft stage."
+            "url": { "raw": "{{base_url}}/api/v1/amenities", "host": ["{{base_url}}"], "path": ["api","v1","amenities"] },
+            "description": "Creates a new amenity record. **Board member / SuperAdmin only.**"
           },
-          "response": [
-            {
-              "name": "201 – Violation Logged (Draft)",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"property_id\": \"019e4918-5de4-7272-ab35-bc3a10645324\",\n  \"title\": \"Illegal Fence Construction Beyond Property Line\",\n  \"description\": \"Occupant of B2-L03 has constructed a hollow block fence extension...\",\n  \"fine_amount\": 2500.00\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/violations", "host": ["{{base_url}}"], "path": ["api","v1","violations"] }
-              },
-              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Violation report logged successfully.\",\n  \"data\": {\n    \"id\": \"019e4902-0000-7000-c000-000000000001\",\n    \"property\": { \"unit_number\": \"B2-L03\" },\n    \"reporter\": { \"name\": \"Rodrigo B. Aquino\" },\n    \"title\": \"Illegal Fence Construction Beyond Property Line\",\n    \"status\": \"draft\",\n    \"status_label\": \"Draft\",\n    \"fine_amount\": \"2500.00\",\n    \"issued_at\": null,\n    \"resolved_at\": null\n  }\n}"
-            }
-          ]
+          "response": []
         },
         {
-          "name": "Update Violation Status (Draft → Issued)",
+          "name": "Update Amenity",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true,\n  \"description\": \"Renovation complete. Function room is now available for booking.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/amenities/{{amenity_id}}", "host": ["{{base_url}}"], "path": ["api","v1","amenities","{{amenity_id}}"] },
+            "description": "Partial update. Use `is_active: true` to re-open a facility after renovation. **Board member / SuperAdmin only.**"
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "📅 Amenity Bookings",
+      "description": "Facility reservation system — residents book amenities; board confirms or cancels.\n\n**Booking status:** `pending → confirmed | cancelled`\n\n**Business rules:**\n- Time-slot conflict detection prevents double booking on the same amenity\n- Inactive amenities cannot be booked\n- `start_at` must be a future datetime; `end_at` must be after `start_at`\n\n**Authorization:**\n- Create: any authenticated user\n- Confirm: `board_member` or `super_admin`\n- Cancel: booker (own booking) or board/admin\n\n**10 seeded:** 5 confirmed, 3 pending, 2 cancelled. Run List Bookings and copy a UUID into `{{booking_id}}`.",
+      "item": [
+        {
+          "name": "List Bookings",
           "event": [{
             "listen": "test",
             "script": {
               "type": "text/javascript",
               "exec": [
                 "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Status transitioned to issued', () => {",
-                "    pm.expect(pm.response.json().data.status).to.equal('issued');",
-                "    pm.expect(pm.response.json().data.issued_at).to.not.be.null;",
+                "const json = pm.response.json();",
+                "if (json.data && json.data.length > 0) {",
+                "    pm.collectionVariables.set('booking_id', json.data[0].id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bookings?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","bookings"],
+              "query": [
+                { "key": "page",       "value": "1" },
+                { "key": "amenity_id", "value": "",  "disabled": true, "description": "Filter by amenity UUID" },
+                { "key": "status",     "value": "",  "disabled": true, "description": "pending|confirmed|cancelled" }
+              ]
+            },
+            "description": "Returns paginated bookings ordered by `start_at` descending.\n\n**Optional filters:**\n- `?amenity_id={{amenity_id}}` — scope to a specific facility\n- `?status=pending` — filter by booking status"
+          },
+          "response": []
+        },
+        {
+          "name": "Show Booking",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/bookings/{{booking_id}}", "host": ["{{base_url}}"], "path": ["api","v1","bookings","{{booking_id}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Booking",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "if (pm.response.code === 201) {",
+                "    pm.collectionVariables.set('booking_id', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amenity_id\": \"{{amenity_id}}\",\n  \"property_id\": \"{{property_id}}\",\n  \"title\": \"Lopez Family Pool Reservation\",\n  \"start_at\": \"2026-06-21 07:00:00\",\n  \"end_at\": \"2026-06-21 09:00:00\",\n  \"notes\": \"Family of 5. Two children under 12 will be accompanied by adults at all times.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/bookings", "host": ["{{base_url}}"], "path": ["api","v1","bookings"] },
+            "description": "Reserves a facility for a specific time slot. **Any authenticated user.**\n\n`amenity_id` and `property_id` must be **UUIDs**. `start_at` must be in the future. Returns `409` if the slot conflicts with an existing active booking."
+          },
+          "response": [
+            {
+              "name": "201 – Booking Created (Pending)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"amenity_id\": \"{{amenity_id}}\",\n  \"property_id\": \"{{property_id}}\",\n  \"title\": \"Lopez Family Pool Reservation\",\n  \"start_at\": \"2026-06-21 07:00:00\",\n  \"end_at\": \"2026-06-21 09:00:00\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/bookings", "host": ["{{base_url}}"], "path": ["api","v1","bookings"] }
+              },
+              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Booking created successfully.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"amenity\": { \"name\": \"Swimming Pool\" },\n    \"property\": { \"unit_number\": \"B1-L01\" },\n    \"booked_by\": { \"name\": \"Carlos M. Reyes\" },\n    \"title\": \"Lopez Family Pool Reservation\",\n    \"start_at\": \"2026-06-21T07:00:00+00:00\",\n    \"end_at\": \"2026-06-21T09:00:00+00:00\",\n    \"status\": \"pending\",\n    \"status_label\": \"Pending\",\n    \"notes\": \"Family of 5...\",\n    \"cancelled_at\": null,\n    \"cancellation_reason\": null\n  }\n}"
+            },
+            {
+              "name": "409 – Time Slot Conflict",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"amenity_id\": \"{{amenity_id}}\",\n  \"property_id\": \"{{property_id}}\",\n  \"title\": \"Conflicting Booking\",\n  \"start_at\": \"2026-06-01 07:30:00\",\n  \"end_at\": \"2026-06-01 08:30:00\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/bookings", "host": ["{{base_url}}"], "path": ["api","v1","bookings"] }
+              },
+              "status": "Conflict", "code": 409, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"The requested time slot conflicts with an existing booking.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Confirm Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/bookings/{{booking_id}}/status", "host": ["{{base_url}}"], "path": ["api","v1","bookings","{{booking_id}}","status"] },
+            "description": "Confirms a pending booking. **Board member / SuperAdmin only.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"cancelled\",\n  \"cancellation_reason\": \"Family emergency – unable to attend the scheduled reservation.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/bookings/{{booking_id}}/status", "host": ["{{base_url}}"], "path": ["api","v1","bookings","{{booking_id}}","status"] },
+            "description": "Cancels a booking. Booker can cancel their own; board can cancel any. `cancellation_reason` is required when status is `cancelled`."
+          },
+          "response": [
+            {
+              "name": "200 – Booking Cancelled",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"cancelled\",\n  \"cancellation_reason\": \"Family emergency.\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/bookings/{{booking_id}}/status", "host": ["{{base_url}}"], "path": ["api","v1","bookings","{{booking_id}}","status"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Booking status updated.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"status\": \"cancelled\",\n    \"status_label\": \"Cancelled\",\n    \"cancelled_at\": \"2026-05-26T10:00:00+00:00\",\n    \"cancellation_reason\": \"Family emergency.\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "📄 Documents",
+      "description": "HOA document library — by-laws, meeting minutes, financial reports, forms, and notices.\n\n**Categories:** `rules`, `minutes`, `financials`, `forms`, `notices`, `other`\n\n**Visibility:**\n- `is_public: true` + `published_at` set → visible to all residents\n- `is_public: false` → board/admin only\n\n**Authorization:**\n- Upload / Update / Delete: `board_member` or `super_admin`\n- List / Show: all authenticated users (residents filtered to public only)\n\n**9 seeded:** 7 public, 2 private. Run List Documents and copy a UUID into `{{document_id}}`.",
+      "item": [
+        {
+          "name": "List Documents",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const json = pm.response.json();",
+                "if (json.data && json.data.length > 0) {",
+                "    pm.collectionVariables.set('document_id', json.data[0].id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/documents?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","documents"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "category", "value": "",  "disabled": true, "description": "rules|minutes|financials|forms|notices|other" }
+              ]
+            },
+            "description": "Returns paginated documents ordered by `published_at` descending.\n\n- **Board/Admin:** sees all including private/unpublished\n- **Resident:** sees only public + published documents\n\n**Optional filter:** `?category=financials`"
+          },
+          "response": [
+            {
+              "name": "200 – Document List",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/documents", "host": ["{{base_url}}"], "path": ["api","v1","documents"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"<uuid>\",\n      \"uploaded_by\": { \"name\": \"Rodrigo B. Aquino\" },\n      \"title\": \"Springdale Village HOA By-Laws and Constitution (2024 Revised Edition)\",\n      \"category\": \"rules\",\n      \"category_label\": \"HOA Rules & Bylaws\",\n      \"file_name\": \"Springdale-Village-HOA-By-Laws-2024-Revised.pdf\",\n      \"file_size\": 2145280,\n      \"mime_type\": \"application/pdf\",\n      \"is_public\": true,\n      \"published_at\": \"2024-04-01T08:00:00+00:00\",\n      \"created_at\": \"2026-05-26T00:00:00+00:00\"\n    }\n  ],\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 9 }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Show Document",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/documents/{{document_id}}", "host": ["{{base_url}}"], "path": ["api","v1","documents","{{document_id}}"] },
+            "description": "Residents get `404` on private or unpublished documents."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Document",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "if (pm.response.code === 201) {",
+                "    pm.collectionVariables.set('document_id', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Board Meeting Minutes – May 17, 2026\",\n  \"description\": \"Official minutes of the Springdale Village HOA Board of Directors regular monthly meeting held on May 17, 2026.\",\n  \"category\": \"minutes\",\n  \"file_path\": \"documents/minutes/board-meeting-minutes-2026-05-17.pdf\",\n  \"file_name\": \"Board-Meeting-Minutes-May-2026.pdf\",\n  \"file_size\": 491520,\n  \"mime_type\": \"application/pdf\",\n  \"is_public\": true,\n  \"published_at\": \"2026-05-26T09:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/documents", "host": ["{{base_url}}"], "path": ["api","v1","documents"] },
+            "description": "Registers a document record. **Board member / SuperAdmin only.**\n\nNote: the API stores metadata only. The actual file upload is handled separately (e.g., Laravel Storage or S3). `file_path` is the storage path returned by your file upload handler.\n\nSet `published_at: null` to keep the document unpublished (draft)."
+          },
+          "response": [
+            {
+              "name": "201 – Document Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"title\": \"Board Meeting Minutes – May 17, 2026\",\n  \"category\": \"minutes\",\n  \"file_path\": \"documents/minutes/board-meeting-minutes-2026-05-17.pdf\",\n  \"file_name\": \"Board-Meeting-Minutes-May-2026.pdf\",\n  \"file_size\": 491520,\n  \"mime_type\": \"application/pdf\",\n  \"is_public\": true,\n  \"published_at\": \"2026-05-26T09:00:00\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/documents", "host": ["{{base_url}}"], "path": ["api","v1","documents"] }
+              },
+              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Document uploaded successfully.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"title\": \"Board Meeting Minutes – May 17, 2026\",\n    \"category\": \"minutes\",\n    \"category_label\": \"Meeting Minutes\",\n    \"file_name\": \"Board-Meeting-Minutes-May-2026.pdf\",\n    \"file_size\": 491520,\n    \"mime_type\": \"application/pdf\",\n    \"is_public\": true,\n    \"published_at\": \"2026-05-26T09:00:00+00:00\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Document",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_public\": true,\n  \"published_at\": \"2026-05-26T09:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/documents/{{document_id}}", "host": ["{{base_url}}"], "path": ["api","v1","documents","{{document_id}}"] },
+            "description": "Partial update. Use to publish a draft, change category, or update description. **Board member / SuperAdmin only.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/documents/{{document_id}}", "host": ["{{base_url}}"], "path": ["api","v1","documents","{{document_id}}"] },
+            "description": "Soft-deletes the document metadata. **Board member / SuperAdmin only.**"
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "🗳️ Meetings & Voting",
+      "description": "Board meeting scheduling, agenda management, and resident voting.\n\n**Meeting status machine:** `scheduled → ongoing → completed | cancelled`\n\n**Vote flow:**\n1. Board creates a vote attached to a meeting\n2. Residents cast a single response per vote\n3. Board closes the vote; tally becomes available\n\n**Anonymous votes** hide individual choices in the tally — only counts per option are shown.\n\n**Authorization:**\n- Create meeting / Create vote / Close vote: `board_member`+\n- Update status / Add minutes: `board_member`+\n- Cast vote / View tally: all authenticated users\n\n**4 meetings seeded** (2 completed, 1 scheduled, 1 cancelled). **3 votes seeded** (2 closed, 1 open with 10 pre-cast responses). Run List Meetings and copy UUIDs into `{{meeting_id}}` and `{{vote_id}}`.",
+      "item": [
+        {
+          "name": "List Meetings",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const json = pm.response.json();",
+                "if (json.data && json.data.length > 0) {",
+                "    pm.collectionVariables.set('meeting_id', json.data[0].id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/meetings?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","meetings"],
+              "query": [
+                { "key": "page",   "value": "1" },
+                { "key": "status", "value": "",  "disabled": true, "description": "scheduled|ongoing|completed|cancelled" }
+              ]
+            },
+            "description": "Returns paginated meetings ordered by `scheduled_at` descending.\n\n**Optional filter:** `?status=scheduled`"
+          },
+          "response": [
+            {
+              "name": "200 – Meeting List",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/meetings", "host": ["{{base_url}}"], "path": ["api","v1","meetings"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"<uuid>\",\n      \"organizer\": { \"name\": \"Rodrigo B. Aquino\" },\n      \"title\": \"Annual General Assembly 2026\",\n      \"location\": \"HOA Multipurpose Hall\",\n      \"scheduled_at\": \"2026-06-14T14:00:00+00:00\",\n      \"status\": \"scheduled\",\n      \"status_label\": \"Scheduled\",\n      \"agenda\": [\"Call to Order\", \"Approval of Minutes\", \"President's Report\"],\n      \"minutes\": null,\n      \"votes\": [],\n      \"created_at\": \"2026-05-26T00:00:00+00:00\"\n    }\n  ],\n  \"meta\": { \"current_page\": 1, \"per_page\": 20, \"total\": 4 }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Show Meeting",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/meetings/{{meeting_id}}", "host": ["{{base_url}}"], "path": ["api","v1","meetings","{{meeting_id}}"] },
+            "description": "Returns the full meeting including agenda, minutes, and all associated votes. Copy a vote UUID from `data.votes[0].id` into `{{vote_id}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Meeting",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "if (pm.response.code === 201) {",
+                "    pm.collectionVariables.set('meeting_id', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Special Board Meeting – June 2026 Security Protocol\",\n  \"description\": \"Special meeting to finalize and ratify the updated visitor and vehicle entry protocol before the July 1, 2026 implementation date.\",\n  \"location\": \"HOA Function Room – Springdale Village Clubhouse\",\n  \"scheduled_at\": \"2026-06-28 14:00:00\",\n  \"agenda\": [\n    \"Call to Order\",\n    \"Presentation – Updated Security Protocol (Jose T. Bautista)\",\n    \"Board Discussion and Amendments\",\n    \"Ratification Vote\",\n    \"Publication Schedule\"\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/meetings", "host": ["{{base_url}}"], "path": ["api","v1","meetings"] },
+            "description": "Schedules a new meeting. **Board member / SuperAdmin only.**\n\n`scheduled_at` must be a future datetime. `agenda` is an optional array of strings."
+          },
+          "response": [
+            {
+              "name": "201 – Meeting Scheduled",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"title\": \"Special Board Meeting – June 2026\",\n  \"location\": \"HOA Function Room\",\n  \"scheduled_at\": \"2026-06-28 14:00:00\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/meetings", "host": ["{{base_url}}"], "path": ["api","v1","meetings"] }
+              },
+              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Meeting scheduled successfully.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"organizer\": { \"name\": \"Rodrigo B. Aquino\" },\n    \"title\": \"Special Board Meeting – June 2026 Security Protocol\",\n    \"status\": \"scheduled\",\n    \"status_label\": \"Scheduled\",\n    \"scheduled_at\": \"2026-06-28T14:00:00+00:00\",\n    \"agenda\": [\"Call to Order\", \"Presentation\", \"Discussion\", \"Vote\"],\n    \"minutes\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Meeting (status / minutes / agenda)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"minutes\": \"MINUTES OF THE SPECIAL BOARD MEETING\\nSpringdale Village HOA | June 28, 2026 | 2:00 PM\\n\\nPRESENT: Rodrigo B. Aquino, Ma. Lourdes C. Santos, Jose T. Bautista\\n\\nThe updated visitor and vehicle entry protocol was presented, reviewed, and unanimously ratified (3-0). Effective date: July 1, 2026. Secretary to publish the notice by June 30, 2026.\\n\\nMeeting adjourned at 3:30 PM.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/meetings/{{meeting_id}}", "host": ["{{base_url}}"], "path": ["api","v1","meetings","{{meeting_id}}"] },
+            "description": "Partial update. **Board member / SuperAdmin only.**\n\nUse to:\n- Transition status: `status: \"ongoing\"` or `\"completed\"` or `\"cancelled\"`\n- Record minutes after a meeting: `minutes: \"...\"` \n- Update agenda before the meeting\n\nStatus transitions are validated: `scheduled → ongoing → completed|cancelled`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Vote for Meeting",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "if (pm.response.code === 201) {",
+                "    pm.collectionVariables.set('vote_id', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Should the HOA install CCTV cameras at Gate 1 and Gate 2 as part of the 2026 security upgrade?\",\n  \"options\": [\n    \"Yes – approve CCTV installation\",\n    \"No – not a priority at this time\",\n    \"Yes, but defer to FY 2027 budget\"\n  ],\n  \"closes_at\": \"2026-06-13 23:59:00\",\n  \"is_anonymous\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/meetings/{{meeting_id}}/votes", "host": ["{{base_url}}"], "path": ["api","v1","meetings","{{meeting_id}}","votes"] },
+            "description": "Creates a new vote within the specified meeting. **Board member / SuperAdmin only.**\n\n**Fields:**\n- `question` — the ballot question (required)\n- `options` — array of 2–10 choice strings (required)\n- `closes_at` — optional deadline; vote auto-expires after this datetime\n- `is_anonymous` — if `true`, voter identity is hidden in response tallies\n\nVote is created with status `open`. The `{{vote_id}}` variable is auto-saved by the post-response script."
+          },
+          "response": [
+            {
+              "name": "201 – Vote Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"question\": \"Should the HOA install CCTV cameras at Gate 1 and Gate 2?\",\n  \"options\": [\"Yes\", \"No\", \"Defer to 2027\"],\n  \"closes_at\": \"2026-06-13 23:59:00\",\n  \"is_anonymous\": true\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/meetings/{{meeting_id}}/votes", "host": ["{{base_url}}"], "path": ["api","v1","meetings","{{meeting_id}}","votes"] }
+              },
+              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Vote created successfully.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"creator\": { \"name\": \"Rodrigo B. Aquino\" },\n    \"question\": \"Should the HOA install CCTV cameras at Gate 1 and Gate 2?\",\n    \"options\": [\"Yes – approve CCTV installation\", \"No – not a priority\", \"Yes, but defer to FY 2027\"],\n    \"closes_at\": \"2026-06-13T23:59:00+00:00\",\n    \"is_anonymous\": true,\n    \"is_open\": true,\n    \"status\": \"open\",\n    \"status_label\": \"Open\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cast Vote",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"selected_option\": \"Yes – I agree to the increase\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/votes/{{vote_id}}/cast", "host": ["{{base_url}}"], "path": ["api","v1","votes","{{vote_id}}","cast"] },
+            "description": "Submits a vote response. **Any authenticated user.**\n\n- `selected_option` must exactly match one of the options defined on the vote\n- Returns `409` if the authenticated user has already voted\n- Returns `422` if the vote is closed or the option is invalid\n\n**Tip:** To cast a vote on the seeded open poll, run Show Meeting (AGA 2026) first, copy the vote UUID into `{{vote_id}}`, then call this endpoint logged in as a resident who hasn't voted yet."
+          },
+          "response": [
+            {
+              "name": "201 – Vote Cast",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"selected_option\": \"Yes – I agree to the increase\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/votes/{{vote_id}}/cast", "host": ["{{base_url}}"], "path": ["api","v1","votes","{{vote_id}}","cast"] }
+              },
+              "status": "Created", "code": 201, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Vote cast successfully.\",\n  \"data\": {\n    \"voted_at\": \"2026-05-26T09:30:00+00:00\"\n  }\n}"
+            },
+            {
+              "name": "409 – Already Voted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"selected_option\": \"Yes – I agree to the increase\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/votes/{{vote_id}}/cast", "host": ["{{base_url}}"], "path": ["api","v1","votes","{{vote_id}}","cast"] }
+              },
+              "status": "Conflict", "code": 409, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"You have already cast your vote.\"\n}"
+            },
+            {
+              "name": "422 – Vote Closed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"selected_option\": \"Approve renewal\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/votes/{{vote_id}}/cast", "host": ["{{base_url}}"], "path": ["api","v1","votes","{{vote_id}}","cast"] }
+              },
+              "status": "Unprocessable Entity", "code": 422, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"This vote is closed.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Vote Tally",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/votes/{{vote_id}}/tally", "host": ["{{base_url}}"], "path": ["api","v1","votes","{{vote_id}}","tally"] },
+            "description": "Returns the vote count per option. **Any authenticated user.**\n\nFor anonymous votes, individual voter identities are not exposed — only the aggregate count per option is returned.\n\n**The seeded open poll** (dues increase) has 10 pre-cast responses (7 Yes, 2 No, 1 Neutral). Check the tally by copying the vote UUID from the AGA 2026 meeting."
+          },
+          "response": [
+            {
+              "name": "200 – Vote Tally",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/votes/{{vote_id}}/tally", "host": ["{{base_url}}"], "path": ["api","v1","votes","{{vote_id}}","tally"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Vote tally\",\n  \"data\": {\n    \"tally\": {\n      \"Yes – I agree to the increase\": 7,\n      \"No – I oppose the increase\": 3,\n      \"Neutral / No preference\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Close Vote",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": { "mode": "none" },
+            "url": { "raw": "{{base_url}}/api/v1/votes/{{vote_id}}/close", "host": ["{{base_url}}"], "path": ["api","v1","votes","{{vote_id}}","close"] },
+            "description": "Closes an open vote — no further responses are accepted. **Board member / SuperAdmin only.**\n\nTally remains accessible after closing."
+          },
+          "response": [
+            {
+              "name": "200 – Vote Closed",
+              "originalRequest": {
+                "method": "POST", "header": [],
+                "url": { "raw": "{{base_url}}/api/v1/votes/{{vote_id}}/close", "host": ["{{base_url}}"], "path": ["api","v1","votes","{{vote_id}}","close"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Vote closed.\",\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"status\": \"closed\",\n    \"status_label\": \"Closed\",\n    \"is_open\": false\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "📊 Reports & Summaries",
+      "description": "Aggregated analytics for board members and admins.\n\n**Authorization:** `board_member` or `super_admin` only.\n\nAll endpoints are `GET` with optional query parameters. No database writes occur.",
+      "item": [
+        {
+          "name": "Financial Summary",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('Has collection_rate', () => pm.expect(pm.response.json().data).to.have.property('collection_rate'));"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/financial?month=2026-05",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","reports","financial"],
+              "query": [{ "key": "month", "value": "2026-05", "description": "Format: YYYY-MM. Defaults to current month." }]
+            },
+            "description": "Returns invoice totals and collection rate for a given billing month.\n\n**Response fields:**\n- `period` — billing month (YYYY-MM)\n- `collected` — total paid\n- `pending` — total unpaid (pending status)\n- `overdue` — total overdue\n- `total_billed` — collected + pending + overdue\n- `collection_rate` — percentage collected vs total billed\n- `invoice_counts` — count per status"
+          },
+          "response": [
+            {
+              "name": "200 – Financial Summary (May 2026)",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/reports/financial?month=2026-05", "host": ["{{base_url}}"], "path": ["api","v1","reports","financial"], "query": [{"key":"month","value":"2026-05"}] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Financial summary\",\n  \"data\": {\n    \"period\": \"2026-05\",\n    \"collected\": 18000.00,\n    \"pending\": 2400.00,\n    \"overdue\": 3600.00,\n    \"total_billed\": 24000.00,\n    \"collection_rate\": 75.0,\n    \"invoice_counts\": {\n      \"paid\": 15,\n      \"pending\": 2,\n      \"overdue\": 3\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Violation Trends",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('Has trends data', () => pm.expect(pm.response.json().data).to.have.property('trends'));"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/violations?months=6",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","reports","violations"],
+              "query": [{ "key": "months", "value": "6", "description": "Number of trailing months to include (default: 6)" }]
+            },
+            "description": "Returns a month-by-month breakdown of violations by status over the specified trailing period."
+          },
+          "response": [
+            {
+              "name": "200 – Violation Trends (6 months)",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/reports/violations?months=6", "host": ["{{base_url}}"], "path": ["api","v1","reports","violations"], "query": [{"key":"months","value":"6"}] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Violation trends\",\n  \"data\": {\n    \"months\": 6,\n    \"from\": \"2025-12\",\n    \"trends\": {\n      \"2025-12\": { \"draft\": 0, \"issued\": 1, \"appealed\": 0, \"paid\": 0, \"resolved\": 1 },\n      \"2026-01\": { \"draft\": 0, \"issued\": 0, \"appealed\": 0, \"paid\": 0, \"resolved\": 1 },\n      \"2026-02\": { \"draft\": 0, \"issued\": 0, \"appealed\": 0, \"paid\": 1, \"resolved\": 0 },\n      \"2026-03\": { \"draft\": 0, \"issued\": 0, \"appealed\": 0, \"paid\": 1, \"resolved\": 0 },\n      \"2026-04\": { \"draft\": 0, \"issued\": 2, \"appealed\": 1, \"paid\": 0, \"resolved\": 0 },\n      \"2026-05\": { \"draft\": 2, \"issued\": 1, \"appealed\": 0, \"paid\": 0, \"resolved\": 0 }\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Occupancy Summary",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('Has occupancy_rate', () => pm.expect(pm.response.json().data).to.have.property('occupancy_rate'));"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/reports/occupancy", "host": ["{{base_url}}"], "path": ["api","v1","reports","occupancy"] },
+            "description": "Returns current occupancy statistics across all active properties.\n\n**Response fields:**\n- `total_units` — all active properties\n- `occupied_units` — units with at least one current resident (no `move_out_at`)\n- `vacant_units` — unoccupied units\n- `occupancy_rate` — percentage occupied\n\n**Seeded:** 17 occupied, 3 vacant (B3-L04, B4-L04, B5-L03)."
+          },
+          "response": [
+            {
+              "name": "200 – Occupancy Summary",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/reports/occupancy", "host": ["{{base_url}}"], "path": ["api","v1","reports","occupancy"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Occupancy summary\",\n  \"data\": {\n    \"total_units\": 20,\n    \"occupied_units\": 17,\n    \"vacant_units\": 3,\n    \"occupancy_rate\": 85.0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Maintenance Summary",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('Has total_open', () => pm.expect(pm.response.json().data).to.have.property('total_open'));"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/reports/maintenance", "host": ["{{base_url}}"], "path": ["api","v1","reports","maintenance"] },
+            "description": "Returns a snapshot of open maintenance requests grouped by status and priority.\n\n**Response fields:**\n- `total_open` — requests not in `resolved` or `closed`\n- `by_status` — count per status\n- `by_priority` — count per priority level"
+          },
+          "response": [
+            {
+              "name": "200 – Maintenance Summary",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/reports/maintenance", "host": ["{{base_url}}"], "path": ["api","v1","reports","maintenance"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Maintenance summary\",\n  \"data\": {\n    \"total_open\": 6,\n    \"by_status\": {\n      \"submitted\": 2,\n      \"in_review\": 2,\n      \"in_progress\": 2\n    },\n    \"by_priority\": {\n      \"urgent\": 2,\n      \"high\": 2,\n      \"normal\": 2,\n      \"low\": 0\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "🙍 Resident Profile",
+      "description": "Resident self-service — view and update own profile without board involvement.\n\n**Authorization:** Any authenticated user (own profile only).\n\nPassword change requires `current_password` to be provided and verified before the new password is accepted.",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('Returns own user profile', () => {",
+                "    const d = pm.response.json().data;",
+                "    pm.expect(d).to.have.property('id');",
+                "    pm.expect(d).to.have.property('email');",
+                "    pm.expect(d).to.have.property('role');",
                 "});"
+              ]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/profile", "host": ["{{base_url}}"], "path": ["api","v1","profile"] },
+            "description": "Returns the authenticated user's own profile. Equivalent to `GET /auth/me` but scoped to the profile module."
+          },
+          "response": [
+            {
+              "name": "200 – Own Profile",
+              "originalRequest": {
+                "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/v1/profile", "host": ["{{base_url}}"], "path": ["api","v1","profile"] }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"OK\",\n  \"data\": {\n    \"id\": \"019e4918-455d-73ad-b5f0-4d39dfaa9610\",\n    \"name\": \"Carlos M. Reyes\",\n    \"email\": \"carlos.reyes@gmail.com\",\n    \"role\": \"resident\",\n    \"role_label\": \"Resident\",\n    \"phone\": \"+63 917 401 1001\",\n    \"created_at\": \"2026-05-26T00:00:00+00:00\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update My Profile",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('Profile updated', () => pm.expect(pm.response.json().success).to.be.true);"
               ]
             }
           }],
           "request": {
             "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"issued\"\n}",
+              "raw": "{\n  \"name\": \"Carlos Miguel Reyes\",\n  \"phone\": \"+63 917 401 2025\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/violations/{{violation_draft}}/status",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "violations", "{{violation_draft}}", "status"]
-            },
-            "description": "Transitions a violation through its state machine. Fires `ViolationStatusUpdated` event on success (queued listener sends mail notification to residents on `Issued`).\n\n`409 Conflict` on invalid transitions (e.g. `draft → resolved`)."
+            "url": { "raw": "{{base_url}}/api/v1/profile", "host": ["{{base_url}}"], "path": ["api","v1","profile"] },
+            "description": "Updates the authenticated user's own name, phone, and/or password. **All fields are optional.**\n\n**To change password**, include all three password fields:\n```json\n{\n  \"current_password\": \"Springdale@2026\",\n  \"password\": \"NewPassword@2027\",\n  \"password_confirmation\": \"NewPassword@2027\"\n}\n```\n\n**Password rules:** minimum 8 characters, mixed case, at least one number.\n\nReturns `422` if `current_password` is incorrect."
           },
           "response": [
             {
-              "name": "200 – Transitioned to Issued",
+              "name": "200 – Profile Updated (name + phone)",
               "originalRequest": {
                 "method": "PATCH",
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{ \"status\": \"issued\" }" },
-                "url": { "raw": "{{base_url}}/api/v1/violations/{{violation_draft}}/status", "host": ["{{base_url}}"], "path": ["api","v1","violations","{{violation_draft}}","status"] }
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Carlos Miguel Reyes\",\n  \"phone\": \"+63 917 401 2025\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/profile", "host": ["{{base_url}}"], "path": ["api","v1","profile"] }
               },
               "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Violation status updated.\",\n  \"data\": {\n    \"id\": \"019e4918-743f-70ec-b7af-c96d6ffb87b5\",\n    \"status\": \"issued\",\n    \"status_label\": \"Issued\",\n    \"issued_at\": \"2026-05-21T10:45:00+00:00\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile updated successfully.\",\n  \"data\": {\n    \"id\": \"019e4918-455d-73ad-b5f0-4d39dfaa9610\",\n    \"name\": \"Carlos Miguel Reyes\",\n    \"email\": \"carlos.reyes@gmail.com\",\n    \"role\": \"resident\",\n    \"role_label\": \"Resident\",\n    \"phone\": \"+63 917 401 2025\",\n    \"created_at\": \"2026-05-26T00:00:00+00:00\"\n  }\n}"
             },
             {
-              "name": "409 – Invalid Transition (draft → resolved)",
+              "name": "200 – Profile Updated (password change)",
               "originalRequest": {
                 "method": "PATCH",
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{ \"status\": \"resolved\" }" },
-                "url": { "raw": "{{base_url}}/api/v1/violations/{{violation_draft}}/status", "host": ["{{base_url}}"], "path": ["api","v1","violations","{{violation_draft}}","status"] }
-              },
-              "status": "Conflict", "code": 409, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid violation status transition from [draft] to [resolved].\"\n}"
-            }
-          ]
-        },
-        {
-          "name": "Append Evidence Images",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                "pm.test('Evidence images array grows', () => {",
-                "    pm.expect(pm.response.json().data.evidence_images).to.be.an('array');",
-                "    pm.expect(pm.response.json().data.evidence_images.length).to.be.greaterThan(0);",
-                "});"
-              ]
-            }
-          }],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept",       "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"evidence_images\": [\n    {\n      \"path\": \"violations/2026/05/b3-l01-parking-followup-001.jpg\",\n      \"lat\": 14.34089,\n      \"lng\": 121.10812,\n      \"captured_at\": \"2026-05-21 14:00:00\"\n    },\n    {\n      \"path\": \"violations/2026/05/b3-l01-parking-followup-002.jpg\",\n      \"lat\": 14.34085,\n      \"lng\": 121.10809,\n      \"captured_at\": \"2026-05-21 14:05:00\"\n    }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/violations/{{violation_issued}}/evidence",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "violations", "{{violation_issued}}", "evidence"]
-            },
-            "description": "Merges additional geotagged images into the violation's existing `evidence_images` JSON array (non-destructive). Max 10 images per request.\n\nRequest body uses only `evidence_images[]` — no `property_id` or `title` needed."
-          },
-          "response": [
-            {
-              "name": "200 – Evidence Appended (merged array)",
-              "originalRequest": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"evidence_images\": [\n    { \"path\": \"violations/2026/05/b3-l01-followup.jpg\", \"lat\": 14.34089, \"lng\": 121.10812, \"captured_at\": \"2026-05-21 14:00:00\" }\n  ]\n}" },
-                "url": { "raw": "{{base_url}}/api/v1/violations/{{violation_issued}}/evidence", "host": ["{{base_url}}"], "path": ["api","v1","violations","{{violation_issued}}","evidence"] }
+                "body": { "mode": "raw", "raw": "{\n  \"current_password\": \"Springdale@2026\",\n  \"password\": \"NewPassword@2027\",\n  \"password_confirmation\": \"NewPassword@2027\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/profile", "host": ["{{base_url}}"], "path": ["api","v1","profile"] }
               },
               "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-              "body": "{\n  \"success\": true,\n  \"message\": \"Evidence images appended.\",\n  \"data\": {\n    \"id\": \"019e4918-747b-721b-b19b-004c80ce482f\",\n    \"title\": \"Illegal Parking \\u2013 Blocking Adjacent Driveway\",\n    \"status\": \"issued\",\n    \"evidence_images\": [\n      { \"path\": \"violations/2026/05/b3-l01-parking-001.jpg\", \"lat\": 14.34089, \"lng\": 121.10812, \"captured_at\": \"2026-05-08 08:05:00\" },\n      { \"path\": \"violations/2026/05/b3-l01-parking-002.jpg\", \"lat\": 14.34085, \"lng\": 121.10809, \"captured_at\": \"2026-05-08 11:52:00\" },\n      { \"path\": \"violations/2026/05/b3-l01-followup.jpg\",   \"lat\": 14.34089, \"lng\": 121.10812, \"captured_at\": \"2026-05-21 14:00:00\" }\n    ]\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile updated successfully.\",\n  \"data\": {\n    \"id\": \"019e4918-455d-73ad-b5f0-4d39dfaa9610\",\n    \"name\": \"Carlos M. Reyes\",\n    \"email\": \"carlos.reyes@gmail.com\",\n    \"role\": \"resident\"\n  }\n}"
+            },
+            {
+              "name": "422 – Wrong Current Password",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"current_password\": \"wrongpassword\",\n  \"password\": \"NewPassword@2027\",\n  \"password_confirmation\": \"NewPassword@2027\"\n}" },
+                "url": { "raw": "{{base_url}}/api/v1/profile", "host": ["{{base_url}}"], "path": ["api","v1","profile"] }
+              },
+              "status": "Unprocessable Entity", "code": 422, "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Current password is incorrect.\"\n}"
             }
           ]
         }

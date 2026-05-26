@@ -7,6 +7,7 @@ namespace App\Enums;
 enum InvoiceStatus: string
 {
     case Pending   = 'pending';
+    case Partial   = 'partial';
     case Paid      = 'paid';
     case Overdue   = 'overdue';
     case Cancelled = 'cancelled';
@@ -15,6 +16,7 @@ enum InvoiceStatus: string
     {
         return match($this) {
             self::Pending   => 'Pending',
+            self::Partial   => 'Partially Paid',
             self::Paid      => 'Paid',
             self::Overdue   => 'Overdue',
             self::Cancelled => 'Cancelled',
@@ -23,6 +25,6 @@ enum InvoiceStatus: string
 
     public function isSettleable(): bool
     {
-        return in_array($this, [self::Pending, self::Overdue], strict: true);
+        return in_array($this, [self::Pending, self::Partial, self::Overdue], strict: true);
     }
 }

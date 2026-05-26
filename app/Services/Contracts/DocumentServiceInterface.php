@@ -8,6 +8,7 @@ use App\Enums\DocumentCategory;
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
 
 interface DocumentServiceInterface
 {
@@ -16,8 +17,12 @@ interface DocumentServiceInterface
 
     public function findOrFail(string $uuid, User $viewer): Document;
 
-    /** @param array<string, mixed> $data */
-    public function create(array $data, User $uploader): Document;
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function create(array $data, User $uploader, UploadedFile $file): Document;
+
+    public function download(string $uuid, User $viewer): Document;
 
     /** @param array<string, mixed> $data */
     public function update(string $uuid, array $data): Document;

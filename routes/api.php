@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\AmenityBookingController;
+use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\ClearanceController;
+use App\Http\Controllers\Api\EmergencyContactController;
+use App\Http\Controllers\Api\PetController;
+use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\ViolationAppealController;
+use App\Http\Controllers\Api\VendorController;
 use App\Http\Controllers\Api\AmenityController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
@@ -90,12 +97,21 @@ Route::prefix('v1')->group(function (): void {
         Route::prefix('violations')->group(function (): void {
             Route::get('/',                       [ViolationController::class, 'index'])->name('violations.index');
             Route::post('/',                      [ViolationController::class, 'store'])->name('violations.store');
+            // static segments before {uuid} wildcard
+            Route::get('repeat-offenders',        [ViolationController::class, 'repeatOffenders'])
+                 ->name('violations.repeat-offenders');
             Route::get('{uuid}',                  [ViolationController::class, 'show'])->name('violations.show');
             Route::patch('{uuid}/status',         [ViolationController::class, 'updateStatus'])
                  ->name('violations.status.update');
             Route::post('{uuid}/evidence',        [ViolationController::class, 'appendEvidence'])
                  ->name('violations.evidence.append');
+            Route::get('{uuid}/appeals',          [ViolationAppealController::class, 'index'])
+                 ->name('violations.appeals.index');
+            Route::post('{uuid}/appeal',          [ViolationAppealController::class, 'store'])
+                 ->name('violations.appeals.store');
         });
+
+        Route::get('appeals/{uuid}', [ViolationAppealController::class, 'show'])->name('appeals.show');
 
         // ── Announcements ─────────────────────────────────────────────────────
         Route::prefix('announcements')->group(function (): void {
@@ -133,11 +149,12 @@ Route::prefix('v1')->group(function (): void {
 
         // ── Documents ─────────────────────────────────────────────────────────
         Route::prefix('documents')->group(function (): void {
-            Route::get('/',            [DocumentController::class, 'index'])->name('documents.index');
-            Route::post('/',           [DocumentController::class, 'store'])->name('documents.store');
-            Route::get('{uuid}',       [DocumentController::class, 'show'])->name('documents.show');
-            Route::patch('{uuid}',     [DocumentController::class, 'update'])->name('documents.update');
-            Route::delete('{uuid}',    [DocumentController::class, 'destroy'])->name('documents.destroy');
+            Route::get('/',                    [DocumentController::class, 'index'])->name('documents.index');
+            Route::post('/',                   [DocumentController::class, 'store'])->name('documents.store');
+            Route::get('{uuid}',               [DocumentController::class, 'show'])->name('documents.show');
+            Route::get('{uuid}/download',      [DocumentController::class, 'download'])->name('documents.download');
+            Route::patch('{uuid}',             [DocumentController::class, 'update'])->name('documents.update');
+            Route::delete('{uuid}',            [DocumentController::class, 'destroy'])->name('documents.destroy');
         });
 
         // ── Meetings & Voting ─────────────────────────────────────────────────
@@ -157,10 +174,72 @@ Route::prefix('v1')->group(function (): void {
 
         // ── Reports & Summaries ───────────────────────────────────────────────
         Route::prefix('reports')->group(function (): void {
+            Route::get('dashboard',    [ReportController::class, 'dashboard'])->name('reports.dashboard');
             Route::get('financial',    [ReportController::class, 'financial'])->name('reports.financial');
             Route::get('violations',   [ReportController::class, 'violations'])->name('reports.violations');
             Route::get('occupancy',    [ReportController::class, 'occupancy'])->name('reports.occupancy');
             Route::get('maintenance',  [ReportController::class, 'maintenance'])->name('reports.maintenance');
+        });
+
+        // ── Vendors ───────────────────────────────────────────────────────────
+        Route::prefix('vendors')->group(function (): void {
+            Route::get('/',                                          [VendorController::class, 'index'])->name('vendors.index');
+            Route::post('/',                                         [VendorController::class, 'store'])->name('vendors.store');
+            Route::get('{uuid}',                                     [VendorController::class, 'show'])->name('vendors.show');
+            Route::patch('{uuid}',                                   [VendorController::class, 'update'])->name('vendors.update');
+            Route::delete('{uuid}',                                  [VendorController::class, 'destroy'])->name('vendors.destroy');
+            Route::post('{uuid}/maintenance/{maintenanceUuid}/assign', [VendorController::class, 'assignToMaintenance'])
+                 ->name('vendors.maintenance.assign');
+        });
+
+        // ── Audit Logs (SuperAdmin only) ──────────────────────────────────────
+        Route::prefix('audit-logs')->group(function (): void {
+            Route::get('/', [AuditLogController::class, 'index'])->name('audit-logs.index');
+            Route::get('{type}/{uuid}', [AuditLogController::class, 'forEntity'])->name('audit-logs.entity');
+        });
+
+        // ── Vehicles ──────────────────────────────────────────────────────────
+        Route::prefix('vehicles')->group(function (): void {
+            Route::get('/',            [VehicleController::class, 'index'])->name('vehicles.index');
+            Route::post('/',           [VehicleController::class, 'store'])->name('vehicles.store');
+            Route::get('{uuid}',       [VehicleController::class, 'show'])->name('vehicles.show');
+            Route::patch('{uuid}',     [VehicleController::class, 'update'])->name('vehicles.update');
+            Route::delete('{uuid}',    [VehicleController::class, 'destroy'])->name('vehicles.destroy');
+        });
+
+        Route::get('properties/{propertyUuid}/vehicles', [VehicleController::class, 'indexForProperty'])
+             ->name('properties.vehicles.index');
+
+        // ── Pets ──────────────────────────────────────────────────────────────
+        Route::prefix('pets')->group(function (): void {
+            Route::get('/',            [PetController::class, 'index'])->name('pets.index');
+            Route::post('/',           [PetController::class, 'store'])->name('pets.store');
+            Route::get('{uuid}',       [PetController::class, 'show'])->name('pets.show');
+            Route::patch('{uuid}',     [PetController::class, 'update'])->name('pets.update');
+            Route::delete('{uuid}',    [PetController::class, 'destroy'])->name('pets.destroy');
+        });
+
+        Route::get('properties/{propertyUuid}/pets', [PetController::class, 'indexForProperty'])
+             ->name('properties.pets.index');
+
+        // ── Emergency Contacts ────────────────────────────────────────────────
+        Route::prefix('users/{userUuid}/emergency-contacts')->group(function (): void {
+            Route::get('/',            [EmergencyContactController::class, 'indexForUser'])->name('emergency-contacts.index');
+            Route::post('/',           [EmergencyContactController::class, 'store'])->name('emergency-contacts.store');
+        });
+
+        Route::prefix('emergency-contacts')->group(function (): void {
+            Route::get('{uuid}',       [EmergencyContactController::class, 'show'])->name('emergency-contacts.show');
+            Route::patch('{uuid}',     [EmergencyContactController::class, 'update'])->name('emergency-contacts.update');
+            Route::delete('{uuid}',    [EmergencyContactController::class, 'destroy'])->name('emergency-contacts.destroy');
+        });
+
+        // ── HOA Clearances ────────────────────────────────────────────────────
+        Route::prefix('clearances')->group(function (): void {
+            Route::get('/',                    [ClearanceController::class, 'index'])->name('clearances.index');
+            Route::post('/',                   [ClearanceController::class, 'store'])->name('clearances.store');
+            Route::get('{uuid}',               [ClearanceController::class, 'show'])->name('clearances.show');
+            Route::patch('{uuid}/status',      [ClearanceController::class, 'updateStatus'])->name('clearances.status.update');
         });
 
         // ── Resident Self-Service (Profile) ───────────────────────────────────

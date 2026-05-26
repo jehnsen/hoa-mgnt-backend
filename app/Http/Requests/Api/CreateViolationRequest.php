@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api;
 
+use App\Enums\ViolationCategory;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
 
 class CreateViolationRequest extends FormRequest
 {
@@ -20,6 +22,7 @@ class CreateViolationRequest extends FormRequest
             'property_id'  => ['required', 'string', 'exists:properties,uuid'],
             'title'        => ['required', 'string', 'min:5', 'max:200'],
             'description'  => ['required', 'string', 'min:20', 'max:5000'],
+            'category'     => ['nullable', new Enum(ViolationCategory::class)],
             'fine_amount'  => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
 
             'evidence_images'               => ['nullable', 'array', 'max:10'],

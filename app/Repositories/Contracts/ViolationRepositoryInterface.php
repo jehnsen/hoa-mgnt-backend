@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Repositories\Contracts;
 
+use App\Enums\ViolationCategory;
 use App\Enums\ViolationStatus;
 use App\Models\Property;
 use App\Models\Violation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 interface ViolationRepositoryInterface
 {
@@ -25,7 +28,15 @@ interface ViolationRepositoryInterface
     public function paginateByStatus(ViolationStatus $status, int $perPage = 20): LengthAwarePaginator;
 
     /** @return LengthAwarePaginator<Violation> */
-    public function paginateFiltered(?ViolationStatus $status, ?int $propertyId, int $perPage = 20): LengthAwarePaginator;
+    public function paginateFiltered(?ViolationStatus $status, ?int $propertyId, ?ViolationCategory $category = null, int $perPage = 20): LengthAwarePaginator;
+
+    /**
+     * Properties that have >= $minCount non-draft violations since $since.
+     * Returns Property models with an appended `violation_count` attribute.
+     *
+     * @return Collection<int, \App\Models\Property>
+     */
+    public function repeatOffenders(int $minCount, Carbon $since, ?ViolationCategory $category = null): Collection;
 
     /** Count active (non-resolved) violations for a given property */
     public function countActiveForProperty(Property $property): int;

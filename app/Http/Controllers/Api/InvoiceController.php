@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\InvoiceType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ApplyLateFeesRequest;
 use App\Http\Requests\Api\CancelInvoiceRequest;
@@ -55,11 +56,21 @@ final class InvoiceController extends Controller
     public function store(CreateInvoiceRequest $request): JsonResponse
     {
         $property = $this->propertyService->findOrFail($request->string('property_id')->toString());
+        $type     = InvoiceType::from($request->input('type', InvoiceType::MonthlyDues->value));
 
-        $invoice = $this->billingService->generateMonthlyDues(
-            $property,
-            $request->string('period_month')->toString()
-        );
+        if ($type === InvoiceType::MonthlyDues) {
+            $invoice = $this->billingService->generateMonthlyDues(
+                $property,
+                $request->string('period_month')->toString()
+            );
+        } else {
+            $invoice = $this->billingService->generateCustomInvoice($property, $type, [
+                'base_amount'  => $request->input('base_amount'),
+                'description'  => $request->input('description'),
+                'due_at'       => $request->input('due_at'),
+                'period_month' => $request->input('period_month'),
+            ]);
+        }
 
         return $this->successResponse(
             new InvoiceResource($invoice->load('property')),

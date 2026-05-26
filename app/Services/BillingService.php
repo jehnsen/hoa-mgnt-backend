@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\InvoiceStatus;
+use App\Enums\InvoiceType;
 use App\Exceptions\DuplicateInvoicePeriodException;
 use App\Exceptions\InvoiceNotCancellableException;
 use App\Exceptions\InvoiceNotSettleableException;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Property;
+use App\Notifications\PaymentReceivedNotification;
 use App\Repositories\Contracts\InvoiceRepositoryInterface;
 use App\Repositories\Contracts\PaymentRepositoryInterface;
 use App\Repositories\Contracts\PropertyRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\BillingServiceInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +27,7 @@ final class BillingService implements BillingServiceInterface
         private readonly InvoiceRepositoryInterface  $invoiceRepository,
         private readonly PaymentRepositoryInterface  $paymentRepository,
         private readonly PropertyRepositoryInterface $propertyRepository,
+        private readonly AuditLogger                 $auditLogger,
     ) {}
 
     /**
@@ -44,6 +48,7 @@ final class BillingService implements BillingServiceInterface
         return DB::transaction(function () use ($property, $periodMonth, $dueAt): Invoice {
             return $this->invoiceRepository->create([
                 'property_id'  => $property->id,
+                'type'         => InvoiceType::MonthlyDues,
                 'description'  => "Monthly HOA Dues – {$periodMonth}",
                 'base_amount'  => $property->monthly_dues,
                 'status'       => InvoiceStatus::Pending,
@@ -96,7 +101,7 @@ final class BillingService implements BillingServiceInterface
             throw new InvoiceNotSettleableException($invoice);
         }
 
-        return DB::transaction(function () use ($invoice, $data): Payment {
+        $payment = DB::transaction(function () use ($invoice, $data): Payment {
             $payment = $this->paymentRepository->create([
                 'invoice_id'            => $invoice->id,
                 'received_by'           => $data['received_by'] ?? null,
@@ -108,18 +113,44 @@ final class BillingService implements BillingServiceInterface
             ]);
 
             // Re-sum after inserting the new payment to avoid race conditions
-            $totalPaid   = $this->paymentRepository->totalPaidForInvoice($invoice);
-            $outstanding = $this->getOutstandingBalance($invoice);
+            $totalPaid = $this->paymentRepository->totalPaidForInvoice($invoice);
 
-            // Mark invoice paid only when the cumulative payments cover the total
             if ($totalPaid >= (float) $invoice->total_amount) {
                 $this->invoiceRepository->updateStatus($invoice, InvoiceStatus::Paid);
-            } elseif ($outstanding < (float) $invoice->total_amount && $invoice->status === InvoiceStatus::Pending) {
-                // Partial payment – keep Pending but log for audit purposes
+            } elseif ($invoice->status !== InvoiceStatus::Partial) {
+                // First partial payment — transition to Partial so the status reflects reality
+                $this->invoiceRepository->updateStatus($invoice, InvoiceStatus::Partial);
             }
 
             return $payment->load('invoice');
         });
+
+        // Notify property owners (or all residents when no owner is designated) after commit
+        $remainingBalance = $this->getOutstandingBalance($invoice);
+        $invoice->load('property.owners', 'property.residents');
+
+        $notifyList = $invoice->property->owners->isNotEmpty()
+            ? $invoice->property->owners
+            : $invoice->property->residents;
+
+        foreach ($notifyList as $recipient) {
+            $recipient->notify(new PaymentReceivedNotification($invoice, $payment, $remainingBalance));
+        }
+
+        $this->auditLogger->log(
+            'invoice',
+            $invoice->uuid,
+            'payment_recorded',
+            null,
+            [
+                'payment_uuid'  => $payment->uuid,
+                'amount'        => $payment->amount,
+                'method'        => $payment->payment_method->value,
+                'new_status'    => $invoice->fresh()->status->value,
+            ],
+        );
+
+        return $payment;
     }
 
     public function getOutstandingBalance(Invoice $invoice): float
@@ -135,8 +166,35 @@ final class BillingService implements BillingServiceInterface
             throw new InvoiceNotCancellableException($invoice);
         }
 
-        return DB::transaction(function () use ($invoice): Invoice {
+        $previousStatus = $invoice->status;
+
+        $cancelled = DB::transaction(function () use ($invoice): Invoice {
             return $this->invoiceRepository->updateStatus($invoice, InvoiceStatus::Cancelled);
+        });
+
+        $this->auditLogger->log(
+            'invoice',
+            $invoice->uuid,
+            'cancelled',
+            ['status' => $previousStatus->value],
+            ['status' => InvoiceStatus::Cancelled->value],
+        );
+
+        return $cancelled;
+    }
+
+    public function generateCustomInvoice(Property $property, InvoiceType $type, array $data): Invoice
+    {
+        return DB::transaction(function () use ($property, $type, $data): Invoice {
+            return $this->invoiceRepository->create([
+                'property_id'  => $property->id,
+                'type'         => $type,
+                'description'  => $data['description'] ?? $type->label(),
+                'base_amount'  => $data['base_amount'],
+                'status'       => InvoiceStatus::Pending,
+                'due_at'       => $data['due_at'],
+                'period_month' => $data['period_month'] ?? null,
+            ]);
         });
     }
 

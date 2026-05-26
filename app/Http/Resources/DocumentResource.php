@@ -24,6 +24,7 @@ class DocumentResource extends JsonResource
             'file_name'      => $this->file_name,
             'file_size'      => $this->file_size,
             'mime_type'      => $this->mime_type,
+            'download_url'   => url("/api/v1/documents/{$this->uuid}/download"),
             'is_public'      => $this->is_public,
             'published_at'   => $this->published_at?->toIso8601String(),
             'created_at'     => $this->created_at?->toIso8601String(),

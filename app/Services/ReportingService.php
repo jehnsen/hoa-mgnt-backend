@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\BookingStatus;
 use App\Enums\InvoiceStatus;
 use App\Enums\MaintenanceStatus;
+use App\Enums\MeetingStatus;
 use App\Enums\ViolationStatus;
 use App\Services\Contracts\ReportingServiceInterface;
 use Illuminate\Support\Carbon;
@@ -78,6 +80,94 @@ final class ReportingService implements ReportingServiceInterface
             'occupied_units' => $occupied,
             'vacant_units'   => $total - $occupied,
             'occupancy_rate' => $total > 0 ? round($occupied / $total * 100, 2) : 0,
+        ];
+    }
+
+    public function dashboardSummary(): array
+    {
+        $today     = Carbon::today();
+        $todayEnd  = Carbon::today()->endOfDay();
+        $in30Days  = Carbon::now()->addDays(30);
+
+        // ── Violations ────────────────────────────────────────────────────────
+        $violationRows = DB::table('violations')
+            ->whereNull('deleted_at')
+            ->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
+
+        $openViolationStatuses = [
+            ViolationStatus::Draft->value,
+            ViolationStatus::Issued->value,
+            ViolationStatus::Appealed->value,
+        ];
+
+        $openViolations = $violationRows
+            ->whereIn('status', $openViolationStatuses)
+            ->sum('count');
+
+        // ── Invoices ──────────────────────────────────────────────────────────
+        $invoiceRows = DB::table('invoices')
+            ->whereNull('deleted_at')
+            ->whereIn('status', [InvoiceStatus::Pending->value, InvoiceStatus::Partial->value, InvoiceStatus::Overdue->value])
+            ->selectRaw('status, COUNT(*) as count, SUM(total_amount) as total')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
+
+        $overdueRow  = $invoiceRows->get(InvoiceStatus::Overdue->value);
+        $pendingRow  = $invoiceRows->get(InvoiceStatus::Pending->value);
+        $partialRow  = $invoiceRows->get(InvoiceStatus::Partial->value);
+
+        // ── Maintenance ───────────────────────────────────────────────────────
+        $openMaintenance = DB::table('maintenance_requests')
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', [MaintenanceStatus::Resolved->value, MaintenanceStatus::Closed->value])
+            ->count();
+
+        // ── Today's bookings ──────────────────────────────────────────────────
+        $todayBookings = DB::table('amenity_bookings')
+            ->where('status', '!=', BookingStatus::Cancelled->value)
+            ->whereDate('start_at', $today->toDateString())
+            ->count();
+
+        // ── Upcoming meetings (next 30 days) ──────────────────────────────────
+        $upcomingMeetings = DB::table('meetings')
+            ->where('status', MeetingStatus::Scheduled->value)
+            ->where('scheduled_at', '>=', Carbon::now())
+            ->where('scheduled_at', '<=', $in30Days)
+            ->orderBy('scheduled_at')
+            ->limit(5)
+            ->get(['uuid', 'title', 'scheduled_at', 'location']);
+
+        return [
+            'violations' => [
+                'open_count'  => (int) $openViolations,
+                'by_status'   => $violationRows->mapWithKeys(fn ($r) => [$r->status => (int) $r->count]),
+            ],
+            'invoices' => [
+                'overdue_count'  => (int) ($overdueRow?->count ?? 0),
+                'overdue_total'  => round((float) ($overdueRow?->total ?? 0), 2),
+                'pending_count'  => (int) ($pendingRow?->count ?? 0),
+                'pending_total'  => round((float) ($pendingRow?->total ?? 0), 2),
+                'partial_count'  => (int) ($partialRow?->count ?? 0),
+                'partial_total'  => round((float) ($partialRow?->total ?? 0), 2),
+            ],
+            'maintenance' => [
+                'open_count' => $openMaintenance,
+            ],
+            'bookings' => [
+                'today_count' => $todayBookings,
+            ],
+            'meetings' => [
+                'upcoming' => $upcomingMeetings->map(fn ($m) => [
+                    'id'           => $m->uuid,
+                    'title'        => $m->title,
+                    'scheduled_at' => $m->scheduled_at,
+                    'location'     => $m->location,
+                ])->values(),
+            ],
         ];
     }
 

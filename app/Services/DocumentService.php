@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
 use App\Services\Contracts\DocumentServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class DocumentService implements DocumentServiceInterface
@@ -40,11 +42,25 @@ final class DocumentService implements DocumentServiceInterface
         return $document;
     }
 
-    public function create(array $data, User $uploader): Document
+    public function create(array $data, User $uploader, UploadedFile $file): Document
     {
-        return $this->documentRepository->create(
-            array_merge($data, ['uploaded_by' => $uploader->id])
+        $path = $file->store(
+            'documents/' . now()->format('Y/m'),
+            'local'
         );
+
+        return $this->documentRepository->create(array_merge($data, [
+            'uploaded_by' => $uploader->id,
+            'file_path'   => $path,
+            'file_name'   => $file->getClientOriginalName(),
+            'file_size'   => $file->getSize(),
+            'mime_type'   => $file->getMimeType() ?? $file->getClientMimeType(),
+        ]));
+    }
+
+    public function download(string $uuid, User $viewer): Document
+    {
+        return $this->findOrFail($uuid, $viewer);
     }
 
     public function update(string $uuid, array $data): Document
@@ -67,5 +83,10 @@ final class DocumentService implements DocumentServiceInterface
         }
 
         $this->documentRepository->delete($document);
+
+        // Remove the physical file after the record is soft-deleted
+        if ($document->file_path && Storage::disk('local')->exists($document->file_path)) {
+            Storage::disk('local')->delete($document->file_path);
+        }
     }
 }

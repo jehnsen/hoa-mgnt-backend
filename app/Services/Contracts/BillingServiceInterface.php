@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Contracts;
 
+use App\Enums\InvoiceType;
 use App\Exceptions\InvoiceNotCancellableException;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -51,4 +52,12 @@ interface BillingServiceInterface
      * @return array{created: int, skipped: int}
      */
     public function generateBulkMonthlyDues(string $periodMonth): array;
+
+    /**
+     * Generate a non-monthly-dues invoice (special assessment, water bill, parking fee, etc.)
+     * for a property. No period-idempotency guard — multiple custom invoices per period are allowed.
+     *
+     * @param array{base_amount: float|string, description?: string, due_at: string, period_month?: string} $data
+     */
+    public function generateCustomInvoice(Property $property, InvoiceType $type, array $data): Invoice;
 }

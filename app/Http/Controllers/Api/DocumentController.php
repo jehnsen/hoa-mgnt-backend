@@ -13,6 +13,7 @@ use App\Services\Contracts\DocumentServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 final class DocumentController extends Controller
 {
@@ -39,13 +40,30 @@ final class DocumentController extends Controller
 
     public function store(UploadDocumentRequest $request): JsonResponse
     {
-        $document = $this->documentService->create($request->safe()->all(), $request->user());
+        $document = $this->documentService->create(
+            $request->safe()->except('file'),
+            $request->user(),
+            $request->file('file')
+        );
 
         return $this->successResponse(
             new DocumentResource($document->load('uploader')),
             'Document uploaded successfully.',
             Response::HTTP_CREATED
         );
+    }
+
+    public function download(string $uuid): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $document = $this->documentService->download($uuid, request()->user());
+
+        abort_unless(
+            Storage::disk('local')->exists($document->file_path),
+            Response::HTTP_NOT_FOUND,
+            'File not found on disk.'
+        );
+
+        return Storage::disk('local')->download($document->file_path, $document->file_name);
     }
 
     public function update(UpdateDocumentRequest $request, string $uuid): JsonResponse

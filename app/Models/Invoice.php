@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\InvoiceStatus;
+use App\Enums\InvoiceType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,7 @@ class Invoice extends Model
     protected $fillable = [
         'uuid',
         'property_id',
+        'type',
         'description',
         'base_amount',
         'late_fee_amount',
@@ -30,6 +32,7 @@ class Invoice extends Model
     protected function casts(): array
     {
         return [
+            'type'            => InvoiceType::class,
             'base_amount'     => 'decimal:2',
             'late_fee_amount' => 'decimal:2',
             // total_amount is a MySQL stored generated column — no cast needed; DB returns it as-is
