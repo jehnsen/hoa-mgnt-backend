@@ -9,6 +9,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -61,9 +62,34 @@ class User extends Authenticatable
         return $this->hasOne(VendorProfile::class);
     }
 
-    public function emergencyContacts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function emergencyContacts(): HasMany
     {
         return $this->hasMany(EmergencyContact::class);
+    }
+
+    public function boardPositions(): HasMany
+    {
+        return $this->hasMany(BoardPosition::class);
+    }
+
+    public function activeBoardPosition(): HasOne
+    {
+        return $this->hasOne(BoardPosition::class)->where('is_active', true)->latestOfMany();
+    }
+
+    public function committeeMembers(): HasMany
+    {
+        return $this->hasMany(CommitteeMember::class);
+    }
+
+    public function grantedProxies(): HasMany
+    {
+        return $this->hasMany(MeetingProxy::class, 'grantor_id');
+    }
+
+    public function receivedProxies(): HasMany
+    {
+        return $this->hasMany(MeetingProxy::class, 'proxy_id');
     }
 
     // ─── Domain Helpers ───────────────────────────────────────────────────────

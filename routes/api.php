@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\AmenityBookingController;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\BoardController;
 use App\Http\Controllers\Api\ClearanceController;
+use App\Http\Controllers\Api\CommitteeController;
 use App\Http\Controllers\Api\EmergencyContactController;
+use App\Http\Controllers\Api\MeetingProxyController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\ViolationAppealController;
@@ -240,6 +243,36 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/',                   [ClearanceController::class, 'store'])->name('clearances.store');
             Route::get('{uuid}',               [ClearanceController::class, 'show'])->name('clearances.show');
             Route::patch('{uuid}/status',      [ClearanceController::class, 'updateStatus'])->name('clearances.status.update');
+        });
+
+        // ── Board of Directors ────────────────────────────────────────────────
+        Route::prefix('board-positions')->group(function (): void {
+            Route::get('/',            [BoardController::class, 'index'])->name('board.index');
+            Route::post('/',           [BoardController::class, 'store'])->name('board.store');
+            Route::get('{uuid}',       [BoardController::class, 'show'])->name('board.show');
+            Route::patch('{uuid}',     [BoardController::class, 'update'])->name('board.update');
+            Route::patch('{uuid}/vacate', [BoardController::class, 'vacate'])->name('board.vacate');
+            Route::delete('{uuid}',    [BoardController::class, 'destroy'])->name('board.destroy');
+        });
+
+        // ── Committees ────────────────────────────────────────────────────────
+        Route::prefix('committees')->group(function (): void {
+            Route::get('/',            [CommitteeController::class, 'index'])->name('committees.index');
+            Route::post('/',           [CommitteeController::class, 'store'])->name('committees.store');
+            Route::get('{uuid}',       [CommitteeController::class, 'show'])->name('committees.show');
+            Route::patch('{uuid}',     [CommitteeController::class, 'update'])->name('committees.update');
+            Route::delete('{uuid}',    [CommitteeController::class, 'destroy'])->name('committees.destroy');
+            Route::post('{uuid}/members',              [CommitteeController::class, 'addMember'])
+                 ->name('committees.members.add');
+            Route::delete('{uuid}/members/{userUuid}', [CommitteeController::class, 'removeMember'])
+                 ->name('committees.members.remove');
+        });
+
+        // ── Meeting Proxies ───────────────────────────────────────────────────
+        Route::prefix('meetings/{meetingUuid}/proxies')->group(function (): void {
+            Route::get('/',           [MeetingProxyController::class, 'index'])->name('meetings.proxies.index');
+            Route::post('/',          [MeetingProxyController::class, 'store'])->name('meetings.proxies.store');
+            Route::delete('{uuid}',   [MeetingProxyController::class, 'revoke'])->name('meetings.proxies.revoke');
         });
 
         // ── Resident Self-Service (Profile) ───────────────────────────────────

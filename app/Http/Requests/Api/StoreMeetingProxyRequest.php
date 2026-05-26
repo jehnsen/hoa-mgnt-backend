@@ -6,7 +6,7 @@ namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CastVoteRequest extends FormRequest
+class StoreMeetingProxyRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,8 +17,7 @@ class CastVoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'selected_option'    => ['required', 'string', 'max:300'],
-            'on_behalf_of_uuid'  => ['nullable', 'string', 'exists:users,uuid'],
+            'proxy_user_uuid' => ['required', 'string', 'exists:users,uuid'],
         ];
     }
 }

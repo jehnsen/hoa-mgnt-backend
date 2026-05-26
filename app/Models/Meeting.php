@@ -50,6 +50,11 @@ class Meeting extends Model
         return $this->hasMany(MeetingVote::class);
     }
 
+    public function proxies(): HasMany
+    {
+        return $this->hasMany(MeetingProxy::class);
+    }
+
     public function canTransitionTo(MeetingStatus $next): bool
     {
         return $this->status->canTransitionTo($next);

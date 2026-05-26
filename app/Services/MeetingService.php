@@ -10,6 +10,7 @@ use App\Models\Meeting;
 use App\Models\MeetingVote;
 use App\Models\User;
 use App\Models\VoteResponse;
+use App\Repositories\Contracts\MeetingProxyRepositoryInterface;
 use App\Repositories\Contracts\MeetingRepositoryInterface;
 use App\Repositories\Contracts\MeetingVoteRepositoryInterface;
 use App\Services\Contracts\MeetingServiceInterface;
@@ -23,6 +24,7 @@ final class MeetingService implements MeetingServiceInterface
     public function __construct(
         private readonly MeetingRepositoryInterface     $meetingRepository,
         private readonly MeetingVoteRepositoryInterface $voteRepository,
+        private readonly MeetingProxyRepositoryInterface $proxyRepository,
     ) {}
 
     public function list(?MeetingStatus $status, int $perPage = 20): LengthAwarePaginator
@@ -93,7 +95,7 @@ final class MeetingService implements MeetingServiceInterface
         return $this->voteRepository->updateVote($vote, ['status' => VoteStatus::Closed]);
     }
 
-    public function castVote(string $voteUuid, string $selectedOption, User $voter): VoteResponse
+    public function castVote(string $voteUuid, string $selectedOption, User $voter, ?User $onBehalfOf = null): VoteResponse
     {
         $vote = $this->findVoteOrFail($voteUuid);
 
@@ -105,14 +107,30 @@ final class MeetingService implements MeetingServiceInterface
             throw new HttpException(422, 'Selected option is not valid for this vote.');
         }
 
-        if ($this->voteRepository->findResponseByUserAndVote($voter->id, $vote->id) !== null) {
-            throw new HttpException(409, 'You have already cast your vote.');
+        // Resolve effective voter — when proxy casting, the grantor's vote is recorded
+        $effectiveVoter = $voter;
+        $castBy         = null;
+
+        if ($onBehalfOf !== null) {
+            $proxy = $this->proxyRepository->findActiveProxy($vote->meeting_id, $onBehalfOf->id, $voter->id);
+
+            if ($proxy === null) {
+                throw new HttpException(403, 'No active proxy authorization found for this meeting.');
+            }
+
+            $effectiveVoter = $onBehalfOf;
+            $castBy         = $voter->id;
         }
 
-        return DB::transaction(function () use ($vote, $selectedOption, $voter): VoteResponse {
+        if ($this->voteRepository->findResponseByUserAndVote($effectiveVoter->id, $vote->id) !== null) {
+            throw new HttpException(409, 'This vote has already been cast.');
+        }
+
+        return DB::transaction(function () use ($vote, $selectedOption, $effectiveVoter, $castBy): VoteResponse {
             return $this->voteRepository->castResponse([
                 'vote_id'         => $vote->id,
-                'user_id'         => $voter->id,
+                'user_id'         => $effectiveVoter->id,
+                'cast_by'         => $castBy,
                 'selected_option' => $selectedOption,
                 'voted_at'        => now(),
             ]);

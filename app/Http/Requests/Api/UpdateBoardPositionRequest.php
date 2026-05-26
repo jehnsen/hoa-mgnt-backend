@@ -6,19 +6,19 @@ namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CastVoteRequest extends FormRequest
+class UpdateBoardPositionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->isSuperAdmin() ?? false;
     }
 
     /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
-            'selected_option'    => ['required', 'string', 'max:300'],
-            'on_behalf_of_uuid'  => ['nullable', 'string', 'exists:users,uuid'],
+            'term_end'  => ['nullable', 'date'],
+            'is_active' => ['boolean'],
         ];
     }
 }

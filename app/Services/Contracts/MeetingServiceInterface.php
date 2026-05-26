@@ -32,7 +32,11 @@ interface MeetingServiceInterface
 
     public function closeVote(string $voteUuid): MeetingVote;
 
-    public function castVote(string $voteUuid, string $selectedOption, User $voter): VoteResponse;
+    /**
+     * @param User|null $onBehalfOf When provided, the authenticated user is acting as proxy for this user.
+     *                              A valid active MeetingProxy must exist for the meeting.
+     */
+    public function castVote(string $voteUuid, string $selectedOption, User $voter, ?User $onBehalfOf = null): VoteResponse;
 
     /** @return array<string, int> */
     public function tallyVote(string $voteUuid): array;

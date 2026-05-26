@@ -6,19 +6,20 @@ namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CastVoteRequest extends FormRequest
+class StoreCommitteeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->canManageFinancials() ?? false;
     }
 
     /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
-            'selected_option'    => ['required', 'string', 'max:300'],
-            'on_behalf_of_uuid'  => ['nullable', 'string', 'exists:users,uuid'],
+            'name'        => ['required', 'string', 'max:200'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'is_active'   => ['boolean'],
         ];
     }
 }

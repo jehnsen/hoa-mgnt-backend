@@ -12,6 +12,7 @@ class VoteResponse extends Model
     protected $fillable = [
         'vote_id',
         'user_id',
+        'cast_by',
         'selected_option',
         'voted_at',
     ];
@@ -31,5 +32,10 @@ class VoteResponse extends Model
     public function voter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function proxyUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cast_by');
     }
 }

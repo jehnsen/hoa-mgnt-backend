@@ -10,6 +10,9 @@ use App\Repositories\Contracts\AnnouncementRepositoryInterface;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
 use App\Repositories\Contracts\InvoiceRepositoryInterface;
 use App\Repositories\Contracts\MaintenanceRequestRepositoryInterface;
+use App\Repositories\Contracts\BoardPositionRepositoryInterface;
+use App\Repositories\Contracts\CommitteeRepositoryInterface;
+use App\Repositories\Contracts\MeetingProxyRepositoryInterface;
 use App\Repositories\Contracts\MeetingRepositoryInterface;
 use App\Repositories\Contracts\MeetingVoteRepositoryInterface;
 use App\Repositories\Contracts\PaymentRepositoryInterface;
@@ -32,6 +35,9 @@ use App\Repositories\Eloquent\AnnouncementRepository;
 use App\Repositories\Eloquent\DocumentRepository;
 use App\Repositories\Eloquent\InvoiceRepository;
 use App\Repositories\Eloquent\MaintenanceRequestRepository;
+use App\Repositories\Eloquent\BoardPositionRepository;
+use App\Repositories\Eloquent\CommitteeRepository;
+use App\Repositories\Eloquent\MeetingProxyRepository;
 use App\Repositories\Eloquent\MeetingRepository;
 use App\Repositories\Eloquent\MeetingVoteRepository;
 use App\Repositories\Eloquent\PaymentRepository;
@@ -58,8 +64,14 @@ use App\Services\Contracts\ReportingServiceInterface;
 use App\Services\Contracts\UserServiceInterface;
 use App\Services\Contracts\VehicleServiceInterface;
 use App\Services\Contracts\VendorServiceInterface;
+use App\Services\BoardService;
+use App\Services\CommitteeService;
+use App\Services\Contracts\BoardServiceInterface;
+use App\Services\Contracts\CommitteeServiceInterface;
+use App\Services\Contracts\MeetingProxyServiceInterface;
 use App\Services\Contracts\ViolationAppealServiceInterface;
 use App\Services\Contracts\ViolationServiceInterface;
+use App\Services\MeetingProxyService;
 use App\Services\DocumentService;
 use App\Services\EmergencyContactService;
 use App\Services\MaintenanceService;
@@ -107,6 +119,9 @@ class RepositoryServiceProvider extends ServiceProvider
         DocumentRepositoryInterface::class              => DocumentRepository::class,
         MeetingRepositoryInterface::class               => MeetingRepository::class,
         MeetingVoteRepositoryInterface::class           => MeetingVoteRepository::class,
+        MeetingProxyRepositoryInterface::class          => MeetingProxyRepository::class,
+        BoardPositionRepositoryInterface::class         => BoardPositionRepository::class,
+        CommitteeRepositoryInterface::class             => CommitteeRepository::class,
         VendorProfileRepositoryInterface::class         => VendorProfileRepository::class,
         VehicleRepositoryInterface::class               => VehicleRepository::class,
         PetRepositoryInterface::class                   => PetRepository::class,
@@ -130,6 +145,9 @@ class RepositoryServiceProvider extends ServiceProvider
         PetServiceInterface::class              => PetService::class,
         EmergencyContactServiceInterface::class => EmergencyContactService::class,
         ClearanceServiceInterface::class        => ClearanceService::class,
+        BoardServiceInterface::class            => BoardService::class,
+        CommitteeServiceInterface::class        => CommitteeService::class,
+        MeetingProxyServiceInterface::class     => MeetingProxyService::class,
     ];
 
     public function register(): void
