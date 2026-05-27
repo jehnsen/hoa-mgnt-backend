@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\AmenityBlackoutController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\AmenityBookingController;
 use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\ElectionController;
@@ -47,9 +48,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
 
+    // ── Health check (no auth, no throttle — for load-balancer probes) ────────
+    Route::get('health', [HealthController::class, 'check'])->name('health');
+
     // ── Authentication ────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function (): void {
-        Route::post('login',          [AuthController::class, 'login'])->name('auth.login');
+        Route::post('login',          [AuthController::class, 'login'])->middleware('throttle:login')->name('auth.login');
         Route::post('forgot-password',[PasswordResetController::class, 'forgotPassword'])->name('auth.forgot-password');
         Route::post('reset-password', [PasswordResetController::class, 'resetPassword'])->name('auth.reset-password');
         Route::get('email/verify/{id}/{hash}', [PasswordResetController::class, 'verifyEmail'])->name('auth.email.verify');
@@ -61,7 +65,7 @@ Route::prefix('v1')->group(function (): void {
         });
     });
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
 
         // ── User Management (SuperAdmin only) ─────────────────────────────────
         Route::prefix('users')->group(function (): void {

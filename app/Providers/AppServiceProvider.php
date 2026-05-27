@@ -24,8 +24,11 @@ use App\Policies\MaintenancePolicy;
 use App\Policies\MeetingPolicy;
 use App\Policies\PropertyPolicy;
 use App\Policies\ViolationPolicy;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -34,6 +37,18 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // ── Rate Limiters ─────────────────────────────────────────────────────
+        // "api"   — authenticated routes: 60 req/min keyed by user ID (or IP for guests)
+        // "login" — brute-force protection: 5 attempts/min per IP
+        RateLimiter::for('api', function (Request $request): Limit {
+            return Limit::perMinute(60)
+                        ->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('login', function (Request $request): Limit {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
         // ── Event → Listener wiring ───────────────────────────────────────────
         // Laravel 11 removed the default EventServiceProvider; events are
         // registered here in AppServiceProvider::boot().
