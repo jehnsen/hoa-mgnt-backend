@@ -42,10 +42,33 @@ class DatabaseSeeder extends Seeder
             // ── New features ─────────────────────────────────────────────────
             AnnouncementSeeder::class,
             MaintenanceRequestSeeder::class,
-            AmenitySeeder::class,          // must run before AmenityBookingSeeder
+            AmenitySeeder::class,          // must run before AmenityBookingSeeder & AmenityBlackoutSeeder
             AmenityBookingSeeder::class,
             DocumentSeeder::class,
-            MeetingSeeder::class,          // includes votes and responses inline
+            MeetingSeeder::class,          // includes votes and responses inline; must run before MeetingProxySeeder
+
+            // ── Governance ───────────────────────────────────────────────────
+            VendorProfileSeeder::class,    // depends on vendor users
+            BoardPositionSeeder::class,    // depends on board member users
+            CommitteeSeeder::class,        // depends on board + resident users
+            BoardElectionSeeder::class,    // depends on resident users
+
+            // ── Resident assets ───────────────────────────────────────────────
+            VehicleSeeder::class,          // depends on properties + resident users
+            PetSeeder::class,              // depends on properties + resident users
+            EmergencyContactSeeder::class, // depends on resident users
+
+            // ── Operations ───────────────────────────────────────────────────
+            RecurringMaintenanceSeeder::class,  // depends on vendor users
+            AmenityBlackoutSeeder::class,       // depends on AmenitySeeder
+            VisitorPassSeeder::class,           // depends on properties + resident users
+            MeetingProxySeeder::class,          // depends on MeetingSeeder + resident users
+
+            // ── Compliance & Finance ─────────────────────────────────────────
+            ViolationAppealSeeder::class,       // depends on ViolationSeeder (Appealed status)
+            ClearanceSeeder::class,             // depends on properties + board users
+            BudgetSeeder::class,
+            UtilityMeterReadingSeeder::class,   // depends on properties + admin user
         ]);
 
         $this->command->info('');

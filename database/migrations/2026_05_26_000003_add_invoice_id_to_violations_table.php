@@ -22,7 +22,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('violations', function (Blueprint $table): void {
-            $table->dropForeignIdFor(\App\Models\Invoice::class);
+            $table->dropForeign('violations_invoice_id_foreign');
+        });
+
+        Schema::table('violations', function (Blueprint $table): void {
             $table->dropColumn('invoice_id');
         });
     }
