@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Eloquent;
 
 use App\Enums\InvoiceStatus;
+use App\Enums\InvoiceType;
 use App\Models\Invoice;
 use App\Models\Property;
 use App\Repositories\Contracts\InvoiceRepositoryInterface;
@@ -55,6 +56,28 @@ class InvoiceRepository implements InvoiceRepositoryInterface
                            ->where('period_month', $periodMonth)
                            ->whereNot('status', InvoiceStatus::Cancelled)
                            ->exists();
+    }
+
+    public function countConsecutiveOverdueMonthlyDues(int $propertyId): int
+    {
+        $invoices = $this->model->newQuery()
+                                ->where('property_id', $propertyId)
+                                ->where('type', InvoiceType::MonthlyDues)
+                                ->whereNull('deleted_at')
+                                ->orderByDesc('period_month')
+                                ->limit(10)
+                                ->get(['status', 'period_month']);
+
+        $count = 0;
+        foreach ($invoices as $invoice) {
+            if ($invoice->status === InvoiceStatus::Overdue) {
+                $count++;
+            } else {
+                break;
+            }
+        }
+
+        return $count;
     }
 
     public function create(array $data): Invoice

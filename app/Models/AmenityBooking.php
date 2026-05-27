@@ -18,6 +18,7 @@ class AmenityBooking extends Model
         'amenity_id',
         'property_id',
         'booked_by',
+        'invoice_id',
         'title',
         'start_at',
         'end_at',
@@ -55,6 +56,11 @@ class AmenityBooking extends Model
     public function booker(): BelongsTo
     {
         return $this->belongsTo(User::class, 'booked_by');
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class, 'invoice_id');
     }
 
     public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): void

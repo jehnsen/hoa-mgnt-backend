@@ -21,6 +21,7 @@ class UpdateMaintenanceStatusRequest extends FormRequest
         return [
             'status'           => ['required', Rule::enum(MaintenanceStatus::class)],
             'resolution_notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'actual_cost'      => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'assigned_to'      => ['sometimes', 'nullable', 'string', 'exists:users,uuid'],
         ];
     }

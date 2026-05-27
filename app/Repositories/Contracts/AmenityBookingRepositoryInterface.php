@@ -17,6 +17,8 @@ interface AmenityBookingRepositoryInterface
 
     public function hasConflict(int $amenityId, string $startAt, string $endAt, ?int $excludeId = null): bool;
 
+    public function countForPropertyInMonth(int $amenityId, int $propertyId, string $yearMonth): int;
+
     /** @param array<string, mixed> $data */
     public function create(array $data): AmenityBooking;
 

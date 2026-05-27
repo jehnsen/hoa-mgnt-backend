@@ -8,6 +8,7 @@ use App\Enums\MaintenanceStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CreateMaintenanceRequestRequest;
 use App\Http\Requests\Api\UpdateMaintenanceStatusRequest;
+use App\Http\Requests\Api\UploadMaintenancePhotosRequest;
 use App\Http\Resources\MaintenanceRequestResource;
 use App\Services\Contracts\MaintenanceServiceInterface;
 use App\Services\Contracts\PropertyServiceInterface;
@@ -88,9 +89,22 @@ final class MaintenanceRequestController extends Controller
                     $newStatus,
                     $request->string('resolution_notes')->toString() ?: null,
                     $assignedToId,
+                    $request->has('actual_cost') ? (float) $request->input('actual_cost') : null,
                 )
             ),
             'Status updated.'
+        );
+    }
+
+    public function uploadPhotos(UploadMaintenancePhotosRequest $request, string $uuid): JsonResponse
+    {
+        $maintenanceRequest = $this->maintenanceService->findOrFail($uuid);
+
+        return $this->successResponse(
+            new MaintenanceRequestResource(
+                $this->maintenanceService->appendPhotos($maintenanceRequest, $request->file('photos'))
+            ),
+            'Photos uploaded.'
         );
     }
 

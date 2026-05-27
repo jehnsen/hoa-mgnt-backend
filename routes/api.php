@@ -2,7 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\AmenityBlackoutController;
 use App\Http\Controllers\Api\AmenityBookingController;
+use App\Http\Controllers\Api\BudgetController;
+use App\Http\Controllers\Api\ElectionController;
+use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\RecurringMaintenanceController;
+use App\Http\Controllers\Api\UtilityBillingController;
+use App\Http\Controllers\Api\VisitorPassController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\BoardController;
 use App\Http\Controllers\Api\ClearanceController;
@@ -42,11 +49,15 @@ Route::prefix('v1')->group(function (): void {
 
     // ── Authentication ────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function (): void {
-        Route::post('login', [AuthController::class, 'login'])->name('auth.login');
+        Route::post('login',          [AuthController::class, 'login'])->name('auth.login');
+        Route::post('forgot-password',[PasswordResetController::class, 'forgotPassword'])->name('auth.forgot-password');
+        Route::post('reset-password', [PasswordResetController::class, 'resetPassword'])->name('auth.reset-password');
+        Route::get('email/verify/{id}/{hash}', [PasswordResetController::class, 'verifyEmail'])->name('auth.email.verify');
 
         Route::middleware('auth:sanctum')->group(function (): void {
-            Route::get('me',      [AuthController::class, 'me'])->name('auth.me');
-            Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout');
+            Route::get('me',                       [AuthController::class, 'me'])->name('auth.me');
+            Route::post('logout',                  [AuthController::class, 'logout'])->name('auth.logout');
+            Route::post('email/resend-verification',[PasswordResetController::class, 'sendVerification'])->name('auth.email.resend');
         });
     });
 
@@ -132,6 +143,18 @@ Route::prefix('v1')->group(function (): void {
             Route::get('{uuid}',               [MaintenanceRequestController::class, 'show'])->name('maintenance.show');
             Route::patch('{uuid}/status',      [MaintenanceRequestController::class, 'updateStatus'])
                  ->name('maintenance.status.update');
+            Route::post('{uuid}/photos',       [MaintenanceRequestController::class, 'uploadPhotos'])
+                 ->name('maintenance.photos.upload');
+        });
+
+        // ── Recurring Maintenance Schedules ───────────────────────────────────
+        Route::prefix('recurring-maintenance')->group(function (): void {
+            Route::get('/',            [RecurringMaintenanceController::class, 'index'])->name('recurring-maintenance.index');
+            Route::post('/',           [RecurringMaintenanceController::class, 'store'])->name('recurring-maintenance.store');
+            Route::get('{uuid}',       [RecurringMaintenanceController::class, 'show'])->name('recurring-maintenance.show');
+            Route::patch('{uuid}',     [RecurringMaintenanceController::class, 'update'])->name('recurring-maintenance.update');
+            Route::delete('{uuid}',    [RecurringMaintenanceController::class, 'destroy'])->name('recurring-maintenance.destroy');
+            Route::post('{uuid}/spawn', [RecurringMaintenanceController::class, 'spawn'])->name('recurring-maintenance.spawn');
         });
 
         // ── Amenities & Bookings ──────────────────────────────────────────────
@@ -140,7 +163,11 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/',           [AmenityController::class, 'store'])->name('amenities.store');
             Route::get('{uuid}',       [AmenityController::class, 'show'])->name('amenities.show');
             Route::patch('{uuid}',     [AmenityController::class, 'update'])->name('amenities.update');
+            Route::get('{uuid}/blackouts',    [AmenityBlackoutController::class, 'index'])->name('amenities.blackouts.index');
+            Route::post('{uuid}/blackouts',   [AmenityBlackoutController::class, 'store'])->name('amenities.blackouts.store');
         });
+
+        Route::delete('blackouts/{uuid}', [AmenityBlackoutController::class, 'destroy'])->name('blackouts.destroy');
 
         Route::prefix('bookings')->group(function (): void {
             Route::get('/',                    [AmenityBookingController::class, 'index'])->name('bookings.index');
@@ -182,7 +209,51 @@ Route::prefix('v1')->group(function (): void {
             Route::get('violations',   [ReportController::class, 'violations'])->name('reports.violations');
             Route::get('occupancy',    [ReportController::class, 'occupancy'])->name('reports.occupancy');
             Route::get('maintenance',  [ReportController::class, 'maintenance'])->name('reports.maintenance');
+            Route::get('export',       [ReportController::class, 'export'])->name('reports.export');
         });
+
+        // ── Budget Management ─────────────────────────────────────────────────
+        Route::prefix('budgets')->group(function (): void {
+            Route::get('/',          [BudgetController::class, 'index'])->name('budgets.index');
+            Route::get('summary',    [BudgetController::class, 'summary'])->name('budgets.summary');
+            Route::post('/',         [BudgetController::class, 'store'])->name('budgets.store');
+            Route::delete('{uuid}',  [BudgetController::class, 'destroy'])->name('budgets.destroy');
+        });
+
+        // ── Utility / Meter Billing ───────────────────────────────────────────
+        Route::prefix('utility-readings')->group(function (): void {
+            Route::get('/',                       [UtilityBillingController::class, 'index'])->name('utility-readings.index');
+            Route::post('/',                      [UtilityBillingController::class, 'store'])->name('utility-readings.store');
+            Route::get('{uuid}',                  [UtilityBillingController::class, 'show'])->name('utility-readings.show');
+            Route::post('{uuid}/generate-bill',   [UtilityBillingController::class, 'generateBill'])->name('utility-readings.generate-bill');
+        });
+
+        // ── Visitor Pre-Authorization ─────────────────────────────────────────
+        Route::prefix('properties/{propertyUuid}/visitor-passes')->group(function (): void {
+            Route::get('/',    [VisitorPassController::class, 'index'])->name('visitor-passes.index');
+            Route::post('/',   [VisitorPassController::class, 'store'])->name('visitor-passes.store');
+        });
+
+        Route::prefix('visitor-passes')->group(function (): void {
+            Route::get('{uuid}',            [VisitorPassController::class, 'show'])->name('visitor-passes.show');
+            Route::delete('{uuid}',         [VisitorPassController::class, 'destroy'])->name('visitor-passes.destroy');
+            Route::post('check-in/{code}',  [VisitorPassController::class, 'checkIn'])->name('visitor-passes.check-in');
+        });
+
+        // ── Board Elections ───────────────────────────────────────────────────
+        Route::prefix('elections')->group(function (): void {
+            Route::get('/',                              [ElectionController::class, 'index'])->name('elections.index');
+            Route::post('/',                             [ElectionController::class, 'store'])->name('elections.store');
+            Route::get('{uuid}',                         [ElectionController::class, 'show'])->name('elections.show');
+            Route::patch('{uuid}',                       [ElectionController::class, 'update'])->name('elections.update');
+            Route::patch('{uuid}/status',                [ElectionController::class, 'transition'])->name('elections.status');
+            Route::delete('{uuid}',                      [ElectionController::class, 'destroy'])->name('elections.destroy');
+            Route::post('{uuid}/nominations',            [ElectionController::class, 'nominate'])->name('elections.nominations.store');
+            Route::post('{uuid}/vote',                   [ElectionController::class, 'castVote'])->name('elections.vote');
+            Route::get('{uuid}/tally',                   [ElectionController::class, 'tally'])->name('elections.tally');
+        });
+
+        Route::patch('nominations/{uuid}/status', [ElectionController::class, 'updateNomination'])->name('nominations.status');
 
         // ── Vendors ───────────────────────────────────────────────────────────
         Route::prefix('vendors')->group(function (): void {

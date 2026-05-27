@@ -18,14 +18,20 @@ class Amenity extends Model
         'description',
         'location',
         'capacity',
+        'fee_per_hour',
+        'security_deposit',
+        'monthly_booking_limit',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
-            'capacity'  => 'integer',
-            'is_active' => 'boolean',
+            'capacity'              => 'integer',
+            'fee_per_hour'          => 'decimal:2',
+            'security_deposit'      => 'decimal:2',
+            'monthly_booking_limit' => 'integer',
+            'is_active'             => 'boolean',
         ];
     }
 
@@ -37,6 +43,11 @@ class Amenity extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(AmenityBooking::class);
+    }
+
+    public function blackouts(): HasMany
+    {
+        return $this->hasMany(AmenityBlackout::class);
     }
 
     public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): void

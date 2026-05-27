@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+// vendor() is BelongsTo VendorProfile — FK references vendor_profiles on MySQL (users on SQLite dev)
+
 class MaintenanceRequest extends Model
 {
     use HasUuids, SoftDeletes;
@@ -22,22 +24,29 @@ class MaintenanceRequest extends Model
         'submitted_by',
         'assigned_to',
         'vendor_id',
+        'recurring_schedule_id',
         'category',
         'title',
         'description',
         'priority',
         'status',
         'resolution_notes',
+        'estimated_cost',
+        'actual_cost',
+        'photos',
         'resolved_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'category'    => MaintenanceCategory::class,
-            'priority'    => MaintenancePriority::class,
-            'status'      => MaintenanceStatus::class,
-            'resolved_at' => 'datetime',
+            'category'       => MaintenanceCategory::class,
+            'priority'       => MaintenancePriority::class,
+            'status'         => MaintenanceStatus::class,
+            'estimated_cost' => 'decimal:2',
+            'actual_cost'    => 'decimal:2',
+            'photos'         => 'array',
+            'resolved_at'    => 'datetime',
         ];
     }
 
@@ -63,7 +72,12 @@ class MaintenanceRequest extends Model
 
     public function vendor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'vendor_id');
+        return $this->belongsTo(VendorProfile::class, 'vendor_id');
+    }
+
+    public function recurringSchedule(): BelongsTo
+    {
+        return $this->belongsTo(RecurringMaintenanceSchedule::class, 'recurring_schedule_id');
     }
 
     public function canTransitionTo(MaintenanceStatus $next): bool

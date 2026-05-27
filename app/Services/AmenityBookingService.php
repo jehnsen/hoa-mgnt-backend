@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\BookingStatus;
+use App\Enums\InvoiceType;
 use App\Models\Amenity;
 use App\Models\AmenityBooking;
 use App\Models\User;
+use App\Repositories\Contracts\AmenityBlackoutRepositoryInterface;
 use App\Repositories\Contracts\AmenityBookingRepositoryInterface;
 use App\Repositories\Contracts\AmenityRepositoryInterface;
+use App\Repositories\Contracts\PropertyRepositoryInterface;
 use App\Services\Contracts\AmenityBookingServiceInterface;
+use App\Services\Contracts\BillingServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -21,6 +26,9 @@ final class AmenityBookingService implements AmenityBookingServiceInterface
     public function __construct(
         private readonly AmenityRepositoryInterface        $amenityRepository,
         private readonly AmenityBookingRepositoryInterface $bookingRepository,
+        private readonly AmenityBlackoutRepositoryInterface $blackoutRepository,
+        private readonly PropertyRepositoryInterface       $propertyRepository,
+        private readonly BillingServiceInterface           $billingService,
     ) {}
 
     public function listAmenities(bool $activeOnly, int $perPage = 20): LengthAwarePaginator
@@ -86,7 +94,38 @@ final class AmenityBookingService implements AmenityBookingServiceInterface
             throw new HttpException(409, 'The requested time slot conflicts with an existing booking.');
         }
 
+        if ($this->blackoutRepository->hasConflict($amenity->id, $data['start_at'], $data['end_at'])) {
+            throw new HttpException(409, 'The requested time slot falls within a maintenance blackout window.');
+        }
+
+        if ($amenity->monthly_booking_limit !== null) {
+            $yearMonth = Carbon::parse($data['start_at'])->format('Y-m');
+            $count     = $this->bookingRepository->countForPropertyInMonth($amenity->id, $data['property_id'], $yearMonth);
+
+            if ($count >= $amenity->monthly_booking_limit) {
+                throw new HttpException(422, "Monthly booking limit of {$amenity->monthly_booking_limit} for this amenity has been reached.");
+            }
+        }
+
         return DB::transaction(function () use ($data, $amenity, $booker): AmenityBooking {
+            $invoiceId = null;
+
+            $feePerHour = (float) ($amenity->fee_per_hour ?? 0);
+            $deposit    = (float) ($amenity->security_deposit ?? 0);
+
+            if ($feePerHour > 0 || $deposit > 0) {
+                $hours    = Carbon::parse($data['start_at'])->diffInMinutes(Carbon::parse($data['end_at'])) / 60;
+                $total    = round($hours * $feePerHour + $deposit, 2);
+                $property = $this->propertyRepository->findById($data['property_id']);
+
+                $invoice   = $this->billingService->generateCustomInvoice($property, InvoiceType::AmenityBookingFee, [
+                    'base_amount' => $total,
+                    'description' => "Booking fee for {$amenity->name}",
+                    'due_at'      => Carbon::parse($data['start_at'])->toDateString(),
+                ]);
+                $invoiceId = $invoice->id;
+            }
+
             return $this->bookingRepository->create([
                 'amenity_id'  => $amenity->id,
                 'property_id' => $data['property_id'],
@@ -96,6 +135,7 @@ final class AmenityBookingService implements AmenityBookingServiceInterface
                 'end_at'      => $data['end_at'],
                 'status'      => BookingStatus::Pending,
                 'notes'       => $data['notes'] ?? null,
+                'invoice_id'  => $invoiceId,
             ]);
         });
     }
@@ -107,8 +147,8 @@ final class AmenityBookingService implements AmenityBookingServiceInterface
         $updates = ['status' => $status];
 
         if ($status === BookingStatus::Cancelled) {
-            $updates['cancelled_at']          = now();
-            $updates['cancellation_reason']   = $cancellationReason;
+            $updates['cancelled_at']        = now();
+            $updates['cancellation_reason'] = $cancellationReason;
         }
 
         return $this->bookingRepository->update($booking, $updates);

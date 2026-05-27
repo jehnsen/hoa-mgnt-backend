@@ -8,6 +8,7 @@ use App\Enums\MaintenanceStatus;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
 
 interface MaintenanceServiceInterface
 {
@@ -19,5 +20,8 @@ interface MaintenanceServiceInterface
     /** @param array<string, mixed> $data */
     public function create(array $data, User $submitter): MaintenanceRequest;
 
-    public function updateStatus(string $uuid, MaintenanceStatus $newStatus, ?string $resolutionNotes = null, ?int $assignedTo = null): MaintenanceRequest;
+    public function updateStatus(string $uuid, MaintenanceStatus $newStatus, ?string $resolutionNotes = null, ?int $assignedTo = null, ?float $actualCost = null): MaintenanceRequest;
+
+    /** @param UploadedFile[] $files */
+    public function appendPhotos(MaintenanceRequest $request, array $files): MaintenanceRequest;
 }

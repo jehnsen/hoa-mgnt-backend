@@ -18,18 +18,34 @@ use App\Repositories\Contracts\MeetingVoteRepositoryInterface;
 use App\Repositories\Contracts\PaymentRepositoryInterface;
 use App\Repositories\Contracts\PropertyRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Contracts\AmenityBlackoutRepositoryInterface;
+use App\Repositories\Contracts\BudgetRepositoryInterface;
 use App\Repositories\Contracts\ClearanceRepositoryInterface;
+use App\Repositories\Contracts\ElectionNominationRepositoryInterface;
+use App\Repositories\Contracts\ElectionRepositoryInterface;
+use App\Repositories\Contracts\ElectionVoteRepositoryInterface;
+use App\Repositories\Contracts\UtilityMeterReadingRepositoryInterface;
+use App\Repositories\Contracts\VisitorPassRepositoryInterface;
 use App\Repositories\Contracts\EmergencyContactRepositoryInterface;
 use App\Repositories\Contracts\PetRepositoryInterface;
+use App\Repositories\Contracts\RecurringMaintenanceRepositoryInterface;
 use App\Repositories\Contracts\VehicleRepositoryInterface;
 use App\Repositories\Contracts\VendorProfileRepositoryInterface;
 use App\Repositories\Contracts\ViolationAppealRepositoryInterface;
 use App\Repositories\Contracts\ViolationRepositoryInterface;
+use App\Repositories\Eloquent\AmenityBlackoutRepository;
 use App\Repositories\Eloquent\AmenityBookingRepository;
+use App\Repositories\Eloquent\BudgetRepository;
+use App\Repositories\Eloquent\ElectionNominationRepository;
+use App\Repositories\Eloquent\ElectionRepository;
+use App\Repositories\Eloquent\ElectionVoteRepository;
+use App\Repositories\Eloquent\UtilityMeterReadingRepository;
+use App\Repositories\Eloquent\VisitorPassRepository;
 use App\Repositories\Eloquent\AmenityRepository;
 use App\Repositories\Eloquent\ClearanceRepository;
 use App\Repositories\Eloquent\EmergencyContactRepository;
 use App\Repositories\Eloquent\PetRepository;
+use App\Repositories\Eloquent\RecurringMaintenanceRepository;
 use App\Repositories\Eloquent\VendorProfileRepository;
 use App\Repositories\Eloquent\AnnouncementRepository;
 use App\Repositories\Eloquent\DocumentRepository;
@@ -46,12 +62,26 @@ use App\Repositories\Eloquent\UserRepository;
 use App\Repositories\Eloquent\VehicleRepository;
 use App\Repositories\Eloquent\ViolationAppealRepository;
 use App\Repositories\Eloquent\ViolationRepository;
+use App\Services\AmenityBlackoutService;
 use App\Services\AmenityBookingService;
 use App\Services\AnnouncementService;
+use App\Services\BudgetService;
+use App\Services\DelinquencyService;
+use App\Services\ElectionService;
+use App\Services\RecurringMaintenanceService;
+use App\Services\UtilityBillingService;
+use App\Services\VisitorPassService;
 use App\Services\BillingService;
 use App\Services\ClearanceService;
+use App\Services\Contracts\AmenityBlackoutServiceInterface;
 use App\Services\Contracts\AmenityBookingServiceInterface;
 use App\Services\Contracts\AnnouncementServiceInterface;
+use App\Services\Contracts\BudgetServiceInterface;
+use App\Services\Contracts\DelinquencyServiceInterface;
+use App\Services\Contracts\ElectionServiceInterface;
+use App\Services\Contracts\RecurringMaintenanceServiceInterface;
+use App\Services\Contracts\UtilityBillingServiceInterface;
+use App\Services\Contracts\VisitorPassServiceInterface;
 use App\Services\Contracts\BillingServiceInterface;
 use App\Services\Contracts\ClearanceServiceInterface;
 use App\Services\Contracts\DocumentServiceInterface;
@@ -126,7 +156,15 @@ class RepositoryServiceProvider extends ServiceProvider
         VehicleRepositoryInterface::class               => VehicleRepository::class,
         PetRepositoryInterface::class                   => PetRepository::class,
         EmergencyContactRepositoryInterface::class      => EmergencyContactRepository::class,
-        ClearanceRepositoryInterface::class             => ClearanceRepository::class,
+        ClearanceRepositoryInterface::class              => ClearanceRepository::class,
+        RecurringMaintenanceRepositoryInterface::class   => RecurringMaintenanceRepository::class,
+        AmenityBlackoutRepositoryInterface::class        => AmenityBlackoutRepository::class,
+        BudgetRepositoryInterface::class                 => BudgetRepository::class,
+        UtilityMeterReadingRepositoryInterface::class    => UtilityMeterReadingRepository::class,
+        VisitorPassRepositoryInterface::class            => VisitorPassRepository::class,
+        ElectionRepositoryInterface::class               => ElectionRepository::class,
+        ElectionNominationRepositoryInterface::class     => ElectionNominationRepository::class,
+        ElectionVoteRepositoryInterface::class           => ElectionVoteRepository::class,
 
         // ── Services ─────────────────────────────────────────────────────────
         UserServiceInterface::class             => UserService::class,
@@ -147,7 +185,14 @@ class RepositoryServiceProvider extends ServiceProvider
         ClearanceServiceInterface::class        => ClearanceService::class,
         BoardServiceInterface::class            => BoardService::class,
         CommitteeServiceInterface::class        => CommitteeService::class,
-        MeetingProxyServiceInterface::class     => MeetingProxyService::class,
+        MeetingProxyServiceInterface::class         => MeetingProxyService::class,
+        RecurringMaintenanceServiceInterface::class => RecurringMaintenanceService::class,
+        AmenityBlackoutServiceInterface::class      => AmenityBlackoutService::class,
+        BudgetServiceInterface::class               => BudgetService::class,
+        UtilityBillingServiceInterface::class       => UtilityBillingService::class,
+        VisitorPassServiceInterface::class          => VisitorPassService::class,
+        DelinquencyServiceInterface::class          => DelinquencyService::class,
+        ElectionServiceInterface::class             => ElectionService::class,
     ];
 
     public function register(): void

@@ -28,15 +28,19 @@ class Property extends Model
         'monthly_dues',
         'late_fee_rate',
         'is_active',
+        'is_delinquent',
+        'delinquent_since',
     ];
 
     protected function casts(): array
     {
         return [
-            'floor'         => 'integer',
-            'monthly_dues'  => 'decimal:2',
-            'late_fee_rate' => 'decimal:4',
-            'is_active'     => 'boolean',
+            'floor'            => 'integer',
+            'monthly_dues'     => 'decimal:2',
+            'late_fee_rate'    => 'decimal:4',
+            'is_active'        => 'boolean',
+            'is_delinquent'    => 'boolean',
+            'delinquent_since' => 'date',
         ];
     }
 

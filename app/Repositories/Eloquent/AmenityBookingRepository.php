@@ -8,6 +8,7 @@ use App\Enums\BookingStatus;
 use App\Models\AmenityBooking;
 use App\Repositories\Contracts\AmenityBookingRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 
 class AmenityBookingRepository implements AmenityBookingRepositoryInterface
 {
@@ -53,6 +54,20 @@ class AmenityBookingRepository implements AmenityBookingRepositoryInterface
         }
 
         return $query->exists();
+    }
+
+    public function countForPropertyInMonth(int $amenityId, int $propertyId, string $yearMonth): int
+    {
+        [$year, $month] = explode('-', $yearMonth);
+        $start = Carbon::create((int) $year, (int) $month)->startOfMonth();
+        $end   = $start->copy()->endOfMonth();
+
+        return $this->model->newQuery()
+                           ->where('amenity_id', $amenityId)
+                           ->where('property_id', $propertyId)
+                           ->where('status', '!=', BookingStatus::Cancelled->value)
+                           ->whereBetween('start_at', [$start, $end])
+                           ->count();
     }
 
     public function create(array $data): AmenityBooking

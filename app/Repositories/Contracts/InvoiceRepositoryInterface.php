@@ -26,6 +26,9 @@ interface InvoiceRepositoryInterface
     /** Check whether an invoice for this property + period already exists (prevents duplicates) */
     public function existsForPeriod(Property $property, string $periodMonth): bool;
 
+    /** Count consecutive overdue monthly_dues invoices from most recent backwards. */
+    public function countConsecutiveOverdueMonthlyDues(int $propertyId): int;
+
     /** @param array<string, mixed> $data */
     public function create(array $data): Invoice;
 

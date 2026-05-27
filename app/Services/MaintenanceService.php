@@ -11,6 +11,8 @@ use App\Repositories\Contracts\MaintenanceRequestRepositoryInterface;
 use App\Services\AuditLogger;
 use App\Services\Contracts\MaintenanceServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -52,7 +54,7 @@ final class MaintenanceService implements MaintenanceServiceInterface
         );
     }
 
-    public function updateStatus(string $uuid, MaintenanceStatus $newStatus, ?string $resolutionNotes = null, ?int $assignedTo = null): MaintenanceRequest
+    public function updateStatus(string $uuid, MaintenanceStatus $newStatus, ?string $resolutionNotes = null, ?int $assignedTo = null, ?float $actualCost = null): MaintenanceRequest
     {
         $request        = $this->findOrFail($uuid);
         $previousStatus = $request->status;
@@ -71,6 +73,10 @@ final class MaintenanceService implements MaintenanceServiceInterface
             $updates['assigned_to'] = $assignedTo;
         }
 
+        if ($actualCost !== null) {
+            $updates['actual_cost'] = $actualCost;
+        }
+
         if ($newStatus === MaintenanceStatus::Resolved) {
             $updates['resolved_at'] = now();
         }
@@ -86,5 +92,17 @@ final class MaintenanceService implements MaintenanceServiceInterface
         );
 
         return $updated;
+    }
+
+    /** @param UploadedFile[] $files */
+    public function appendPhotos(MaintenanceRequest $request, array $files): MaintenanceRequest
+    {
+        $photos = $request->photos ?? [];
+
+        foreach ($files as $file) {
+            $photos[] = Storage::disk('local')->putFile("maintenance/{$request->uuid}", $file);
+        }
+
+        return $this->maintenanceRepository->update($request, ['photos' => $photos]);
     }
 }

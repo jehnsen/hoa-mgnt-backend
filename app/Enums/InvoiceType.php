@@ -11,7 +11,8 @@ enum InvoiceType: string
     case WaterBill         = 'water_bill';
     case ParkingFee        = 'parking_fee';
     case Utility           = 'utility';
-    case ViolationFine     = 'violation_fine';
+    case ViolationFine      = 'violation_fine';
+    case AmenityBookingFee  = 'amenity_booking_fee';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum InvoiceType: string
             self::ParkingFee        => 'Parking Fee',
             self::Utility           => 'Utility',
             self::ViolationFine     => 'Violation Fine',
+            self::AmenityBookingFee => 'Amenity Booking Fee',
         };
     }
 }
