@@ -76,7 +76,7 @@ final class PasswordResetController extends Controller
 
     public function verifyEmail(Request $request, string $id, string $hash): JsonResponse
     {
-        $user = \App\Models\User::findOrFail($id);
+        $user = \App\Models\User::where('uuid', $id)->firstOrFail();
 
         if (! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
             return response()->json(['success' => false, 'message' => 'Invalid verification link.'], Response::HTTP_FORBIDDEN);

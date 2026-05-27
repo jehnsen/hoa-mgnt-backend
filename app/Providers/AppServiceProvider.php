@@ -24,11 +24,13 @@ use App\Policies\MaintenancePolicy;
 use App\Policies\MeetingPolicy;
 use App\Policies\PropertyPolicy;
 use App\Policies\ViolationPolicy;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -37,6 +39,21 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // ── Email verification URL – use UUID, not integer primary key ───────
+        // The default Laravel VerifyEmail notification embeds $user->getKey()
+        // (integer ID) in the signed URL. We replace it with the UUID so no
+        // internal IDs are ever exposed in emails or API responses.
+        VerifyEmail::createUrlUsing(function (object $notifiable): string {
+            return URL::temporarySignedRoute(
+                'auth.email.verify',
+                now()->addMinutes(60),
+                [
+                    'id'   => $notifiable->uuid,
+                    'hash' => sha1($notifiable->getEmailForVerification()),
+                ],
+            );
+        });
+
         // ── Rate Limiters ─────────────────────────────────────────────────────
         // "api"   — authenticated routes: 60 req/min keyed by user ID (or IP for guests)
         // "login" — brute-force protection: 5 attempts/min per IP
