@@ -9,6 +9,7 @@ use App\Enums\InvoiceType;
 use App\Models\Amenity;
 use App\Models\AmenityBooking;
 use App\Models\User;
+use App\Notifications\BookingConfirmedNotification;
 use App\Repositories\Contracts\AmenityBlackoutRepositoryInterface;
 use App\Repositories\Contracts\AmenityBookingRepositoryInterface;
 use App\Repositories\Contracts\AmenityRepositoryInterface;
@@ -109,7 +110,7 @@ final class AmenityBookingService implements AmenityBookingServiceInterface
             }
         }
 
-        return DB::transaction(function () use ($data, $amenity, $booker): AmenityBooking {
+        $booking = DB::transaction(function () use ($data, $amenity, $booker): AmenityBooking {
             $invoiceId = null;
 
             $feePerHour = (float) ($amenity->fee_per_hour ?? 0);
@@ -140,6 +141,10 @@ final class AmenityBookingService implements AmenityBookingServiceInterface
                 'invoice_id'  => $invoiceId,
             ]);
         });
+
+        $booker->notify(new BookingConfirmedNotification($booking->load(['amenity', 'property', 'invoice'])));
+
+        return $booking;
     }
 
     public function updateBookingStatus(string $uuid, BookingStatus $status, ?string $cancellationReason = null): AmenityBooking

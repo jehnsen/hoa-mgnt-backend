@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Enums\MaintenanceStatus;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
+use App\Notifications\MaintenanceRequestSubmittedNotification;
 use App\Repositories\Contracts\MaintenanceRequestRepositoryInterface;
 use App\Services\AuditLogger;
 use App\Services\Contracts\MaintenanceServiceInterface;
@@ -46,12 +47,16 @@ final class MaintenanceService implements MaintenanceServiceInterface
 
     public function create(array $data, User $submitter): MaintenanceRequest
     {
-        return $this->maintenanceRepository->create(
+        $request = $this->maintenanceRepository->create(
             array_merge($data, [
                 'submitted_by' => $submitter->id,
                 'status'       => MaintenanceStatus::Submitted,
             ])
         );
+
+        $submitter->notify(new MaintenanceRequestSubmittedNotification($request->load('property')));
+
+        return $request;
     }
 
     public function updateStatus(string $uuid, MaintenanceStatus $newStatus, ?string $resolutionNotes = null, ?int $assignedTo = null, ?float $actualCost = null): MaintenanceRequest
