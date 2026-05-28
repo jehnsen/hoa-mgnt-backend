@@ -25,7 +25,7 @@ final class PropertyController extends Controller
 
     public function index(): AnonymousResourceCollection
     {
-        return PropertyResource::collection($this->propertyService->list());
+        return PropertyResource::collection($this->propertyService->list($this->perPage()));
     }
 
     public function show(string $property): JsonResponse
@@ -77,8 +77,4 @@ final class PropertyController extends Controller
         return $this->successResponse(null, 'Resident unassigned successfully.');
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

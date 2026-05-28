@@ -6,23 +6,26 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AuditLogResource;
-use App\Models\AuditLog;
-use Illuminate\Http\JsonResponse;
+use App\Services\AuditLogger;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 final class AuditLogController extends Controller
 {
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+    ) {}
+
     public function index(): AnonymousResourceCollection
     {
         $this->ensureAdmin();
 
-        $logs = AuditLog::with('actor')
-            ->when(request('type'), fn ($q) => $q->where('auditable_type', request('type')))
-            ->when(request('uuid'), fn ($q) => $q->where('auditable_uuid', request('uuid')))
-            ->when(request('action'), fn ($q) => $q->where('action', request('action')))
-            ->orderByDesc('created_at')
-            ->paginate((int) request()->integer('per_page', 20));
+        $logs = $this->auditLogger->list(
+            type:    request('type'),
+            uuid:    request('uuid'),
+            action:  request('action'),
+            perPage: $this->perPage(),
+        );
 
         return AuditLogResource::collection($logs);
     }
@@ -31,13 +34,9 @@ final class AuditLogController extends Controller
     {
         $this->ensureAdmin();
 
-        $logs = AuditLog::with('actor')
-            ->where('auditable_type', $type)
-            ->where('auditable_uuid', $uuid)
-            ->orderByDesc('created_at')
-            ->paginate(50);
-
-        return AuditLogResource::collection($logs);
+        return AuditLogResource::collection(
+            $this->auditLogger->forEntity($type, $uuid)
+        );
     }
 
     private function ensureAdmin(): void

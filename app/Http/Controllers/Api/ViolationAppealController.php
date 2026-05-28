@@ -34,7 +34,7 @@ final class ViolationAppealController extends Controller
         $violation = $this->violationService->findOrFail($violationUuid);
         $appeal    = $this->appealService->create($violation, $request->validated(), $request->user());
 
-        return $this->ok(
+        return $this->successResponse(
             new ViolationAppealResource($appeal),
             'Appeal submitted successfully.',
             Response::HTTP_CREATED
@@ -43,11 +43,7 @@ final class ViolationAppealController extends Controller
 
     public function show(string $uuid): JsonResponse
     {
-        return $this->ok(new ViolationAppealResource($this->appealService->findOrFail($uuid)));
+        return $this->successResponse(new ViolationAppealResource($this->appealService->findOrFail($uuid)));
     }
 
-    private function ok(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

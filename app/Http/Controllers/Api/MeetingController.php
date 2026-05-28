@@ -26,7 +26,8 @@ final class MeetingController extends Controller
     {
         return MeetingResource::collection(
             $this->meetingService->list(
-                request()->enum('status', MeetingStatus::class)
+                request()->enum('status', MeetingStatus::class),
+                $this->perPage()
             )
         );
     }
@@ -77,8 +78,4 @@ final class MeetingController extends Controller
         );
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

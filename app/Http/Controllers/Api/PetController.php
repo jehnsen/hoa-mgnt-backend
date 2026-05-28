@@ -22,27 +22,27 @@ final class PetController extends Controller
     public function index(): AnonymousResourceCollection
     {
         return PetResource::collection(
-            $this->petService->list(request()->user())
+            $this->petService->list(request()->user(), $this->perPage())
         );
     }
 
     public function indexForProperty(string $propertyUuid): AnonymousResourceCollection
     {
         return PetResource::collection(
-            $this->petService->listForProperty($propertyUuid, request()->user())
+            $this->petService->listForProperty($propertyUuid, request()->user(), $this->perPage())
         );
     }
 
     public function show(string $uuid): JsonResponse
     {
-        return $this->ok(new PetResource($this->petService->findOrFail($uuid)));
+        return $this->successResponse(new PetResource($this->petService->findOrFail($uuid)));
     }
 
     public function store(StorePetRequest $request): JsonResponse
     {
         $pet = $this->petService->create($request->validated(), $request->user());
 
-        return $this->ok(
+        return $this->successResponse(
             new PetResource($pet->load(['property', 'registrant'])),
             'Pet registered successfully.',
             Response::HTTP_CREATED
@@ -54,18 +54,14 @@ final class PetController extends Controller
         $pet     = $this->petService->findOrFail($uuid);
         $updated = $this->petService->update($pet, $request->validated());
 
-        return $this->ok(new PetResource($updated->load(['property', 'registrant'])), 'Pet updated.');
+        return $this->successResponse(new PetResource($updated->load(['property', 'registrant'])), 'Pet updated.');
     }
 
     public function destroy(string $uuid): JsonResponse
     {
         $this->petService->delete($this->petService->findOrFail($uuid));
 
-        return $this->ok(null, 'Pet removed.');
+        return $this->successResponse(null, 'Pet removed.');
     }
 
-    private function ok(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

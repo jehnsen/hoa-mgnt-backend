@@ -26,6 +26,7 @@ final class UtilityBillingController extends Controller
             $this->utilityService->list(
                 propertyUuid: request()->string('property_id')->toString() ?: null,
                 utilityType:  request()->string('utility_type')->toString() ?: null,
+                perPage:      $this->perPage(),
             )
         );
     }
@@ -65,8 +66,4 @@ final class UtilityBillingController extends Controller
         );
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

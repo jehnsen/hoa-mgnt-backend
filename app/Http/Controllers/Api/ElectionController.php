@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\ElectionStatus;
 use App\Enums\NominationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CastElectionVoteRequest;
 use App\Http\Requests\Api\StoreElectionRequest;
 use App\Http\Requests\Api\StoreNominationRequest;
+use App\Http\Requests\Api\TransitionElectionRequest;
+use App\Http\Requests\Api\UpdateElectionRequest;
 use App\Http\Resources\ElectionNominationResource;
 use App\Http\Resources\ElectionResource;
 use App\Services\Contracts\ElectionServiceInterface;
@@ -27,7 +28,7 @@ final class ElectionController extends Controller
 
     public function index(): AnonymousResourceCollection
     {
-        return ElectionResource::collection($this->electionService->list());
+        return ElectionResource::collection($this->electionService->list($this->perPage()));
     }
 
     public function show(string $uuid): JsonResponse
@@ -48,7 +49,7 @@ final class ElectionController extends Controller
         );
     }
 
-    public function update(StoreElectionRequest $request, string $uuid): JsonResponse
+    public function update(UpdateElectionRequest $request, string $uuid): JsonResponse
     {
         $election = $this->electionService->findOrFail($uuid);
 
@@ -58,10 +59,10 @@ final class ElectionController extends Controller
         );
     }
 
-    public function transition(string $uuid): JsonResponse
+    public function transition(TransitionElectionRequest $request, string $uuid): JsonResponse
     {
         $election  = $this->electionService->findOrFail($uuid);
-        $newStatus = ElectionStatus::from(request()->string('status')->toString());
+        $newStatus = $request->enum('status', \App\Enums\ElectionStatus::class);
 
         return $this->successResponse(
             new ElectionResource($this->electionService->transition($election, $newStatus)),
@@ -123,10 +124,5 @@ final class ElectionController extends Controller
         $election = $this->electionService->findOrFail($uuid);
 
         return $this->successResponse($this->electionService->tally($election), 'Election tally');
-    }
-
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
     }
 }

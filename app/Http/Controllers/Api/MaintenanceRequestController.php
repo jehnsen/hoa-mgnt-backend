@@ -42,6 +42,7 @@ final class MaintenanceRequestController extends Controller
                 $propertyId,
                 request()->enum('status', MaintenanceStatus::class),
                 $submitter,
+                $this->perPage()
             )
         );
     }
@@ -108,8 +109,4 @@ final class MaintenanceRequestController extends Controller
         );
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

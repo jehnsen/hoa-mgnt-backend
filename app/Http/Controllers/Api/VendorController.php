@@ -28,7 +28,7 @@ final class VendorController extends Controller
     public function index(): AnonymousResourceCollection
     {
         return VendorProfileResource::collection(
-            $this->vendorService->list()
+            $this->vendorService->list($this->perPage())
         );
     }
 
@@ -83,8 +83,4 @@ final class VendorController extends Controller
         );
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

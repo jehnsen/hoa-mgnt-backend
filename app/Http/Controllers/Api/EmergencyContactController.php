@@ -22,12 +22,12 @@ final class EmergencyContactController extends Controller
     {
         $contacts = $this->contactService->listForUser($userUuid, request()->user());
 
-        return $this->ok(EmergencyContactResource::collection($contacts));
+        return $this->successResponse(EmergencyContactResource::collection($contacts));
     }
 
     public function show(string $uuid): JsonResponse
     {
-        return $this->ok(new EmergencyContactResource(
+        return $this->successResponse(new EmergencyContactResource(
             $this->contactService->findOrFail($uuid)
         ));
     }
@@ -36,7 +36,7 @@ final class EmergencyContactController extends Controller
     {
         $contact = $this->contactService->create($userUuid, $request->validated(), $request->user());
 
-        return $this->ok(
+        return $this->successResponse(
             new EmergencyContactResource($contact),
             'Emergency contact added.',
             Response::HTTP_CREATED
@@ -48,18 +48,14 @@ final class EmergencyContactController extends Controller
         $contact = $this->contactService->findOrFail($uuid);
         $updated = $this->contactService->update($contact, $request->validated());
 
-        return $this->ok(new EmergencyContactResource($updated), 'Emergency contact updated.');
+        return $this->successResponse(new EmergencyContactResource($updated), 'Emergency contact updated.');
     }
 
     public function destroy(string $uuid): JsonResponse
     {
         $this->contactService->delete($this->contactService->findOrFail($uuid));
 
-        return $this->ok(null, 'Emergency contact removed.');
+        return $this->successResponse(null, 'Emergency contact removed.');
     }
 
-    private function ok(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

@@ -36,7 +36,7 @@ final class MeetingProxyController extends Controller
 
         $meetingProxy = $this->proxyService->grant($meeting, $request->user(), $proxy);
 
-        return $this->ok(
+        return $this->successResponse(
             new MeetingProxyResource($meetingProxy->load(['grantor', 'proxy'])),
             'Proxy granted successfully.',
             Response::HTTP_CREATED
@@ -48,11 +48,7 @@ final class MeetingProxyController extends Controller
         $proxy   = $this->proxyService->findOrFail($proxyUuid);
         $revoked = $this->proxyService->revoke($proxy, request()->user());
 
-        return $this->ok(new MeetingProxyResource($revoked->load(['grantor', 'proxy'])), 'Proxy revoked.');
+        return $this->successResponse(new MeetingProxyResource($revoked->load(['grantor', 'proxy'])), 'Proxy revoked.');
     }
 
-    private function ok(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

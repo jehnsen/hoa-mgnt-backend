@@ -35,6 +35,7 @@ final class ViolationController extends Controller
                 status:     request()->enum('status', ViolationStatus::class),
                 propertyId: request()->integer('property_id') ?: null,
                 category:   request()->enum('category', ViolationCategory::class),
+                perPage:    $this->perPage(),
             )
         );
     }
@@ -103,8 +104,4 @@ final class ViolationController extends Controller
         );
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

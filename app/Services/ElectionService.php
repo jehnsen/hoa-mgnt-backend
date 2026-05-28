@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Repositories\Contracts\ElectionNominationRepositoryInterface;
 use App\Repositories\Contracts\ElectionRepositoryInterface;
 use App\Repositories\Contracts\ElectionVoteRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\ElectionServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,7 @@ final class ElectionService implements ElectionServiceInterface
         private readonly ElectionRepositoryInterface           $electionRepository,
         private readonly ElectionNominationRepositoryInterface $nominationRepository,
         private readonly ElectionVoteRepositoryInterface       $voteRepository,
+        private readonly AuditLogger                           $auditLogger,
     ) {}
 
     public function list(int $perPage = 20): LengthAwarePaginator
@@ -62,7 +64,17 @@ final class ElectionService implements ElectionServiceInterface
             throw new HttpException(422, "Cannot transition election from [{$election->status->value}] to [{$newStatus->value}].");
         }
 
-        return $this->electionRepository->update($election, ['status' => $newStatus]);
+        $updated = $this->electionRepository->update($election, ['status' => $newStatus]);
+
+        $this->auditLogger->log(
+            'board_election',
+            $updated->uuid,
+            'election_status_changed',
+            ['status' => $election->status->value],
+            ['status' => $newStatus->value],
+        );
+
+        return $updated;
     }
 
     public function delete(BoardElection $election): void

@@ -24,7 +24,7 @@ final class UserController extends Controller
 
     public function index(): AnonymousResourceCollection
     {
-        return UserResource::collection($this->userService->list());
+        return UserResource::collection($this->userService->list($this->perPage()));
     }
 
     public function show(string $user): JsonResponse
@@ -60,8 +60,4 @@ final class UserController extends Controller
         return $this->successResponse(null, 'User deleted successfully.');
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

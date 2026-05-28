@@ -22,20 +22,20 @@ final class VehicleController extends Controller
     public function index(): AnonymousResourceCollection
     {
         return VehicleResource::collection(
-            $this->vehicleService->list(request()->user())
+            $this->vehicleService->list(request()->user(), $this->perPage())
         );
     }
 
     public function indexForProperty(string $propertyUuid): AnonymousResourceCollection
     {
         return VehicleResource::collection(
-            $this->vehicleService->listForProperty($propertyUuid, request()->user())
+            $this->vehicleService->listForProperty($propertyUuid, request()->user(), $this->perPage())
         );
     }
 
     public function show(string $uuid): JsonResponse
     {
-        return $this->ok(new VehicleResource(
+        return $this->successResponse(new VehicleResource(
             $this->vehicleService->findOrFail($uuid)
         ));
     }
@@ -44,7 +44,7 @@ final class VehicleController extends Controller
     {
         $vehicle = $this->vehicleService->create($request->validated(), $request->user());
 
-        return $this->ok(
+        return $this->successResponse(
             new VehicleResource($vehicle->load(['property', 'registrant'])),
             'Vehicle registered successfully.',
             Response::HTTP_CREATED
@@ -56,18 +56,14 @@ final class VehicleController extends Controller
         $vehicle = $this->vehicleService->findOrFail($uuid);
         $updated = $this->vehicleService->update($vehicle, $request->validated(), $request->user());
 
-        return $this->ok(new VehicleResource($updated->load(['property', 'registrant'])), 'Vehicle updated.');
+        return $this->successResponse(new VehicleResource($updated->load(['property', 'registrant'])), 'Vehicle updated.');
     }
 
     public function destroy(string $uuid): JsonResponse
     {
         $this->vehicleService->delete($this->vehicleService->findOrFail($uuid));
 
-        return $this->ok(null, 'Vehicle removed.');
+        return $this->successResponse(null, 'Vehicle removed.');
     }
 
-    private function ok(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

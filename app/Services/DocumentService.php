@@ -8,6 +8,7 @@ use App\Enums\DocumentCategory;
 use App\Models\Document;
 use App\Models\User;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\DocumentServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
@@ -18,6 +19,7 @@ final class DocumentService implements DocumentServiceInterface
 {
     public function __construct(
         private readonly DocumentRepositoryInterface $documentRepository,
+        private readonly AuditLogger                 $auditLogger,
     ) {}
 
     public function list(?DocumentCategory $category, User $viewer, int $perPage = 20): LengthAwarePaginator
@@ -49,13 +51,23 @@ final class DocumentService implements DocumentServiceInterface
             'local'
         );
 
-        return $this->documentRepository->create(array_merge($data, [
+        $document = $this->documentRepository->create(array_merge($data, [
             'uploaded_by' => $uploader->id,
             'file_path'   => $path,
             'file_name'   => $file->getClientOriginalName(),
             'file_size'   => $file->getSize(),
             'mime_type'   => $file->getMimeType() ?? $file->getClientMimeType(),
         ]));
+
+        $this->auditLogger->log(
+            'document',
+            $document->uuid,
+            'document_uploaded',
+            null,
+            ['file_name' => $document->file_name, 'category' => $data['category'] ?? null],
+        );
+
+        return $document;
     }
 
     public function download(string $uuid, User $viewer): Document
@@ -81,6 +93,13 @@ final class DocumentService implements DocumentServiceInterface
         if ($document === null) {
             throw new NotFoundHttpException("Document [{$uuid}] not found.");
         }
+
+        $this->auditLogger->log(
+            'document',
+            $document->uuid,
+            'document_deleted',
+            ['file_name' => $document->file_name],
+        );
 
         $this->documentRepository->delete($document);
 

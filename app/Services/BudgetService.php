@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\BudgetCategory;
+use App\Enums\MaintenanceStatus;
 use App\Models\HoaBudget;
 use App\Repositories\Contracts\BudgetRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\BudgetServiceInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +18,7 @@ final class BudgetService implements BudgetServiceInterface
 {
     public function __construct(
         private readonly BudgetRepositoryInterface $budgetRepository,
+        private readonly AuditLogger               $auditLogger,
     ) {}
 
     public function forYear(int $year): Collection
@@ -41,14 +44,27 @@ final class BudgetService implements BudgetServiceInterface
         $existing = $this->budgetRepository->findByYearAndCategory($year, $category);
 
         if ($existing !== null) {
-            return $this->budgetRepository->update($existing, $data);
+            $updated = $this->budgetRepository->update($existing, $data);
+            $this->auditLogger->log('hoa_budget', $updated->uuid, 'budget_entry_updated',
+                ['budgeted_amount' => (float) $existing->budgeted_amount],
+                ['budgeted_amount' => (float) $updated->budgeted_amount],
+            );
+            return $updated;
         }
 
-        return $this->budgetRepository->create($data);
+        $created = $this->budgetRepository->create($data);
+        $this->auditLogger->log('hoa_budget', $created->uuid, 'budget_entry_created',
+            null,
+            ['fiscal_year' => $created->fiscal_year, 'category' => $created->category->value],
+        );
+        return $created;
     }
 
     public function delete(HoaBudget $budget): void
     {
+        $this->auditLogger->log('hoa_budget', $budget->uuid, 'budget_entry_deleted',
+            ['fiscal_year' => $budget->fiscal_year, 'category' => $budget->category->value],
+        );
         $this->budgetRepository->delete($budget);
     }
 
@@ -82,6 +98,21 @@ final class BudgetService implements BudgetServiceInterface
         foreach ($actualRows as $type => $row) {
             $cat = ($typeToCategory[$type] ?? BudgetCategory::Other)->value;
             $actualByCategory[$cat] = ($actualByCategory[$cat] ?? 0) + (float) $row->total;
+        }
+
+        // Aggregate completed maintenance work against the Maintenance budget category.
+        // Uses updated_at as the cost-realisation date since resolved_at may be null for
+        // requests closed without a formal resolution step.
+        $maintenanceSpent = (float) DB::table('maintenance_requests')
+            ->whereNull('deleted_at')
+            ->whereNotNull('actual_cost')
+            ->whereIn('status', [MaintenanceStatus::Resolved->value, MaintenanceStatus::Closed->value])
+            ->whereBetween('updated_at', ["{$year}-01-01 00:00:00", "{$year}-12-31 23:59:59"])
+            ->sum('actual_cost');
+
+        if ($maintenanceSpent > 0) {
+            $actualByCategory[BudgetCategory::Maintenance->value] =
+                ($actualByCategory[BudgetCategory::Maintenance->value] ?? 0) + $maintenanceSpent;
         }
 
         $result = [];

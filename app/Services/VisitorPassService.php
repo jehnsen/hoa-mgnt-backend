@@ -8,6 +8,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Models\VisitorPass;
 use App\Repositories\Contracts\VisitorPassRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\VisitorPassServiceInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
@@ -18,6 +19,7 @@ final class VisitorPassService implements VisitorPassServiceInterface
 {
     public function __construct(
         private readonly VisitorPassRepositoryInterface $passRepository,
+        private readonly AuditLogger                    $auditLogger,
     ) {}
 
     public function forProperty(Property $property, bool $activeOnly = false): Collection
@@ -67,10 +69,20 @@ final class VisitorPassService implements VisitorPassServiceInterface
             throw new HttpException(422, 'This visitor pass has expired.');
         }
 
-        return $this->passRepository->update($pass, [
+        $updated = $this->passRepository->update($pass, [
             'is_used' => true,
             'used_at' => now(),
         ]);
+
+        $this->auditLogger->log(
+            'visitor_pass',
+            $updated->uuid,
+            'visitor_pass_checked_in',
+            null,
+            ['visitor_name' => $updated->visitor_name, 'used_at' => $updated->used_at->toIso8601String()],
+        );
+
+        return $updated;
     }
 
     public function delete(VisitorPass $pass): void

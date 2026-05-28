@@ -29,6 +29,7 @@ final class AmenityBookingController extends Controller
                 amenityUuid: request()->string('amenity_id')->toString() ?: null,
                 propertyId:  null,
                 status:      request()->enum('status', BookingStatus::class),
+                perPage:     $this->perPage(),
             )
         );
     }
@@ -75,8 +76,4 @@ final class AmenityBookingController extends Controller
         );
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

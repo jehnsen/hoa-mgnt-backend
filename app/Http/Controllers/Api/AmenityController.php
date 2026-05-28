@@ -24,7 +24,7 @@ final class AmenityController extends Controller
         $activeOnly = ! (request()->user()?->isSuperAdmin() || request()->user()?->isBoardMember());
 
         return AmenityResource::collection(
-            $this->amenityService->listAmenities($activeOnly)
+            $this->amenityService->listAmenities($activeOnly, $this->perPage())
         );
     }
 
@@ -54,8 +54,4 @@ final class AmenityController extends Controller
         );
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

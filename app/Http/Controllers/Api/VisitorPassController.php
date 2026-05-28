@@ -67,8 +67,4 @@ final class VisitorPassController extends Controller
         return $this->successResponse(null, 'Visitor pass deleted.');
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Enums\BoardPositionTitle;
 use App\Models\BoardPosition;
 use App\Repositories\Contracts\BoardPositionRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\BoardServiceInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ final class BoardService implements BoardServiceInterface
 {
     public function __construct(
         private readonly BoardPositionRepositoryInterface $boardRepository,
+        private readonly AuditLogger                      $auditLogger,
     ) {}
 
     public function listActive(): Collection
@@ -49,13 +51,23 @@ final class BoardService implements BoardServiceInterface
         }
 
         return DB::transaction(function () use ($data): BoardPosition {
-            return $this->boardRepository->create([
+            $position = $this->boardRepository->create([
                 'user_id'    => $data['user_id'],
                 'position'   => $data['position'],
                 'term_start' => $data['term_start'],
                 'term_end'   => $data['term_end'] ?? null,
                 'is_active'  => true,
             ]);
+
+            $this->auditLogger->log(
+                'board_position',
+                $position->uuid,
+                'board_position_assigned',
+                null,
+                ['position' => $data['position'], 'user_id' => $data['user_id']],
+            );
+
+            return $position;
         });
     }
 

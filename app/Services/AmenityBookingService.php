@@ -13,6 +13,7 @@ use App\Repositories\Contracts\AmenityBlackoutRepositoryInterface;
 use App\Repositories\Contracts\AmenityBookingRepositoryInterface;
 use App\Repositories\Contracts\AmenityRepositoryInterface;
 use App\Repositories\Contracts\PropertyRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\AmenityBookingServiceInterface;
 use App\Services\Contracts\BillingServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -24,11 +25,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class AmenityBookingService implements AmenityBookingServiceInterface
 {
     public function __construct(
-        private readonly AmenityRepositoryInterface        $amenityRepository,
-        private readonly AmenityBookingRepositoryInterface $bookingRepository,
+        private readonly AmenityRepositoryInterface         $amenityRepository,
+        private readonly AmenityBookingRepositoryInterface  $bookingRepository,
         private readonly AmenityBlackoutRepositoryInterface $blackoutRepository,
-        private readonly PropertyRepositoryInterface       $propertyRepository,
-        private readonly BillingServiceInterface           $billingService,
+        private readonly PropertyRepositoryInterface        $propertyRepository,
+        private readonly BillingServiceInterface            $billingService,
+        private readonly AuditLogger                        $auditLogger,
     ) {}
 
     public function listAmenities(bool $activeOnly, int $perPage = 20): LengthAwarePaginator
@@ -151,6 +153,16 @@ final class AmenityBookingService implements AmenityBookingServiceInterface
             $updates['cancellation_reason'] = $cancellationReason;
         }
 
-        return $this->bookingRepository->update($booking, $updates);
+        $updated = $this->bookingRepository->update($booking, $updates);
+
+        $this->auditLogger->log(
+            'amenity_booking',
+            $updated->uuid,
+            'booking_status_changed',
+            ['status' => $booking->status->value],
+            ['status' => $status->value],
+        );
+
+        return $updated;
     }
 }

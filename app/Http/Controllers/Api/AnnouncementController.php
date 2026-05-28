@@ -28,8 +28,8 @@ final class AnnouncementController extends Controller
             : ($user?->isBoardMember() ? AnnouncementAudience::BoardMembers : null);
 
         $list = ($user?->isSuperAdmin() || $user?->isBoardMember())
-            ? $this->announcementService->listAll()
-            : $this->announcementService->listPublished($audience);
+            ? $this->announcementService->listAll($this->perPage())
+            : $this->announcementService->listPublished($audience, $this->perPage());
 
         return AnnouncementResource::collection($list);
     }
@@ -70,8 +70,4 @@ final class AnnouncementController extends Controller
         return $this->successResponse(null, 'Announcement deleted.');
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

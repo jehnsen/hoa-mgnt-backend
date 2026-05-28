@@ -23,7 +23,7 @@ final class ClearanceController extends Controller
     public function index(): AnonymousResourceCollection
     {
         return ClearanceResource::collection(
-            $this->clearanceService->list(request()->user())
+            $this->clearanceService->list(request()->user(), $this->perPage())
         );
     }
 
@@ -31,14 +31,14 @@ final class ClearanceController extends Controller
     {
         $clearance = $this->clearanceService->findOrFail($uuid);
 
-        return $this->ok(new ClearanceResource($clearance));
+        return $this->successResponse(new ClearanceResource($clearance));
     }
 
     public function store(StoreClearanceRequest $request): JsonResponse
     {
         $clearance = $this->clearanceService->create($request->validated(), $request->user());
 
-        return $this->ok(
+        return $this->successResponse(
             new ClearanceResource($clearance->load(['property', 'requester'])),
             'Clearance request submitted.',
             Response::HTTP_CREATED
@@ -57,14 +57,10 @@ final class ClearanceController extends Controller
             $request->user()
         );
 
-        return $this->ok(
+        return $this->successResponse(
             new ClearanceResource($updated->load(['property', 'requester', 'issuer'])),
             'Clearance status updated.'
         );
     }
 
-    private function ok(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

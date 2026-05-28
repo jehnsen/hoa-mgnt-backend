@@ -28,7 +28,7 @@ final class BoardController extends Controller
 
     public function show(string $uuid): JsonResponse
     {
-        return $this->ok(new BoardPositionResource($this->boardService->findOrFail($uuid)));
+        return $this->successResponse(new BoardPositionResource($this->boardService->findOrFail($uuid)));
     }
 
     public function store(StoreBoardPositionRequest $request): JsonResponse
@@ -39,7 +39,7 @@ final class BoardController extends Controller
             ['user_id' => $user->id]
         ));
 
-        return $this->ok(
+        return $this->successResponse(
             new BoardPositionResource($position->load('user')),
             'Board position assigned.',
             Response::HTTP_CREATED
@@ -51,7 +51,7 @@ final class BoardController extends Controller
         $position = $this->boardService->findOrFail($uuid);
         $updated  = $this->boardService->update($position, $request->validated());
 
-        return $this->ok(new BoardPositionResource($updated->load('user')), 'Board position updated.');
+        return $this->successResponse(new BoardPositionResource($updated->load('user')), 'Board position updated.');
     }
 
     public function vacate(string $uuid): JsonResponse
@@ -59,18 +59,14 @@ final class BoardController extends Controller
         $position = $this->boardService->findOrFail($uuid);
         $vacated  = $this->boardService->vacate($position);
 
-        return $this->ok(new BoardPositionResource($vacated->load('user')), 'Board position vacated.');
+        return $this->successResponse(new BoardPositionResource($vacated->load('user')), 'Board position vacated.');
     }
 
     public function destroy(string $uuid): JsonResponse
     {
         $this->boardService->delete($this->boardService->findOrFail($uuid));
 
-        return $this->ok(null, 'Board position removed.');
+        return $this->successResponse(null, 'Board position removed.');
     }
 
-    private function ok(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

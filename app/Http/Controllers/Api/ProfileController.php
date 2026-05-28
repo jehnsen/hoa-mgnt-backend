@@ -37,8 +37,4 @@ final class ProfileController extends Controller
         return $this->successResponse(new UserResource($user->refresh()), 'Profile updated successfully.');
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

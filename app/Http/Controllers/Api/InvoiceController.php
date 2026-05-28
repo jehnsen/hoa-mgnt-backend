@@ -39,7 +39,7 @@ final class InvoiceController extends Controller
         $this->authorize('viewAny', [\App\Models\Invoice::class, $property]);
 
         return InvoiceResource::collection(
-            $this->invoiceRepository->paginateForProperty($property)
+            $this->invoiceRepository->paginateForProperty($property, $this->perPage())
         );
     }
 
@@ -136,8 +136,4 @@ final class InvoiceController extends Controller
         );
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

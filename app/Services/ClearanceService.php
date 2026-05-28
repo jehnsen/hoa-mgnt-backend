@@ -10,6 +10,7 @@ use App\Models\Clearance;
 use App\Models\User;
 use App\Repositories\Contracts\ClearanceRepositoryInterface;
 use App\Repositories\Contracts\PropertyRepositoryInterface;
+use App\Services\AuditLogger;
 use App\Services\Contracts\ClearanceServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,7 @@ final class ClearanceService implements ClearanceServiceInterface
     public function __construct(
         private readonly ClearanceRepositoryInterface $clearanceRepository,
         private readonly PropertyRepositoryInterface  $propertyRepository,
+        private readonly AuditLogger                  $auditLogger,
     ) {}
 
     public function list(User $viewer, int $perPage = 20): LengthAwarePaginator
@@ -78,6 +80,18 @@ final class ClearanceService implements ClearanceServiceInterface
             $updates['rejection_reason']  = $data['rejection_reason'];
         }
 
-        return DB::transaction(fn () => $this->clearanceRepository->update($clearance, $updates));
+        return DB::transaction(function () use ($clearance, $updates, $newStatus): Clearance {
+            $updated = $this->clearanceRepository->update($clearance, $updates);
+
+            $this->auditLogger->log(
+                'clearance',
+                $updated->uuid,
+                'clearance_status_changed',
+                ['status' => $clearance->status->value],
+                ['status' => $newStatus->value],
+            );
+
+            return $updated;
+        });
     }
 }

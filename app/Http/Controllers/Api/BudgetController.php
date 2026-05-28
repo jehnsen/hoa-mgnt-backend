@@ -48,8 +48,4 @@ final class BudgetController extends Controller
         return $this->successResponse(null, 'Budget entry deleted.');
     }
 
-    private function successResponse(mixed $data, string $message = 'OK', int $status = Response::HTTP_OK): JsonResponse
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);
-    }
 }

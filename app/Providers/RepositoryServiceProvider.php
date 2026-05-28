@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\AuditLogRepositoryInterface;
 use App\Repositories\Contracts\AmenityBookingRepositoryInterface;
 use App\Repositories\Contracts\AmenityRepositoryInterface;
 use App\Repositories\Contracts\AnnouncementRepositoryInterface;
@@ -33,6 +34,7 @@ use App\Repositories\Contracts\VehicleRepositoryInterface;
 use App\Repositories\Contracts\VendorProfileRepositoryInterface;
 use App\Repositories\Contracts\ViolationAppealRepositoryInterface;
 use App\Repositories\Contracts\ViolationRepositoryInterface;
+use App\Repositories\Eloquent\AuditLogRepository;
 use App\Repositories\Eloquent\AmenityBlackoutRepository;
 use App\Repositories\Eloquent\AmenityBookingRepository;
 use App\Repositories\Eloquent\BudgetRepository;
@@ -136,6 +138,7 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public array $bindings = [
         // ── Repositories ──────────────────────────────────────────────────────
+        AuditLogRepositoryInterface::class               => AuditLogRepository::class,
         UserRepositoryInterface::class                  => UserRepository::class,
         PropertyRepositoryInterface::class              => PropertyRepository::class,
         InvoiceRepositoryInterface::class               => InvoiceRepository::class,
