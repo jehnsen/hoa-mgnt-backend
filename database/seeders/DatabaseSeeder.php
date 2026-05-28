@@ -69,6 +69,9 @@ class DatabaseSeeder extends Seeder
             ClearanceSeeder::class,             // depends on properties + board users
             BudgetSeeder::class,
             UtilityMeterReadingSeeder::class,   // depends on properties + admin user
+
+            // ── Audit trail (must run last — depends on all entity seeders) ───
+            AuditLogSeeder::class,
         ]);
 
         $this->command->info('');
