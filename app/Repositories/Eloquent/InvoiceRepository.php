@@ -51,9 +51,13 @@ class InvoiceRepository implements InvoiceRepositoryInterface
 
     public function existsForPeriod(Property $property, string $periodMonth): bool
     {
+        // Use a YYYY-MM prefix LIKE to match regardless of whether the stored value
+        // is 'Y-m-d' (MySQL) or 'Y-m-d H:i:s' (SQLite Eloquent date cast).
+        $prefix = substr($periodMonth, 0, 7);
+
         return $this->model->newQuery()
                            ->where('property_id', $property->id)
-                           ->where('period_month', $periodMonth)
+                           ->where('period_month', 'LIKE', $prefix . '%')
                            ->whereNot('status', InvoiceStatus::Cancelled)
                            ->exists();
     }

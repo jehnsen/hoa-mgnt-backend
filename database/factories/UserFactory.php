@@ -42,4 +42,19 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    public function superAdmin(): static
+    {
+        return $this->state(['role' => \App\Enums\UserRole::SuperAdmin->value]);
+    }
+
+    public function boardMember(): static
+    {
+        return $this->state(['role' => \App\Enums\UserRole::BoardMember->value]);
+    }
+
+    public function resident(): static
+    {
+        return $this->state(['role' => \App\Enums\UserRole::Resident->value]);
+    }
 }
